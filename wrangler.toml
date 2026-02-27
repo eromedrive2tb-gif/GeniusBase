@@ -1,0 +1,37 @@
+name = "genius-base"
+main = "Root/Engine/src/index.tsx"
+compatibility_date = "2024-04-01"
+
+# Environment Variables
+[vars]
+NODE_ENV = "development"
+
+# D1 Database Binding
+[[d1_databases]]
+binding = "DB"
+database_name = "genius-base-db"
+database_id = "REPLACE_WITH_D1_ID"
+
+# KV Namespace Binding
+[[kv_namespaces]]
+binding = "KV_CACHE"
+id = "REPLACE_WITH_KV_ID"
+
+# R2 Bucket Binding
+[[r2_buckets]]
+binding = "R2_STORAGE"
+bucket_name = "genius-base-storage"
+
+# Durable Objects Binding
+[[durable_objects.bindings]]
+name = "REALTIME_STATE"
+class_name = "RealtimeState"
+
+# Durable Objects Migrations
+[[migrations]]
+tag = "v1"
+new_classes = ["RealtimeState"]
+
+# Observability
+[observability]
+enabled = true

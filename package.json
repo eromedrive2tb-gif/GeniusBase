@@ -1,0 +1,17 @@
+{
+  "name": "genius-base",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --minify",
+    "cf-typegen": "wrangler types",
+    "db:migrate": "wrangler d1 migrations apply genius-base-db --local"
+  },
+  "dependencies": {
+    "hono": "^4.12.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "wrangler": "^4.69.0"
+  }
+}

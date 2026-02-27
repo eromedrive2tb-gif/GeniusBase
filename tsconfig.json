@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "lib": [
+      "ESNext"
+    ],
+    "types": [],
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@engine/*": [
+        "Root/Engine/src/*"
+      ],
+      "@dashboard/*": [
+        "Root/Dashboard/src/*"
+      ]
+    }
+  },
+  "include": [
+    "Root/**/*.ts",
+    "Root/**/*.tsx",
+    "worker-configuration.d.ts"
+  ]
+}
