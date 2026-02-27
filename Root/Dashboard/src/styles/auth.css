@@ -1,0 +1,260 @@
+/* ============================================================
+ * Auth Styles
+ * Root/Dashboard/src/styles/auth.css
+ *
+ * Responsabilidade única: todo o CSS para páginas de autenticação
+ * (Login, Register). Separado dos componentes TSX.
+ * ============================================================ */
+
+/* ─── Design Tokens ────────────────────────────────────────── */
+
+:root {
+    --gb-primary: #6366f1;
+    --gb-primary-hover: #4f46e5;
+    --gb-bg: #0f172a;
+    --gb-surface: #1e293b;
+    --gb-surface-light: #334155;
+    --gb-text: #f1f5f9;
+    --gb-text-muted: #94a3b8;
+    --gb-danger: #ef4444;
+    --gb-success: #22c55e;
+    --gb-info: #3b82f6;
+    --gb-border: #475569;
+    --gb-radius: 12px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/* ─── Global Auth Page ─────────────────────────────────────── */
+
+body {
+    margin: 0;
+    background: var(--gb-bg);
+    color: var(--gb-text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ─── Auth Wrapper & Card ──────────────────────────────────── */
+
+.auth-wrapper {
+    width: 100%;
+    max-width: 440px;
+    padding: 2rem;
+}
+
+.auth-card {
+    background: var(--gb-surface);
+    border: 1px solid var(--gb-border);
+    border-radius: var(--gb-radius);
+    padding: 2.5rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+/* ─── Auth Header ──────────────────────────────────────────── */
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.auth-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+    background: linear-gradient(135deg, var(--gb-primary), #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.auth-header p {
+    color: var(--gb-text-muted);
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+/* ─── Auth Footer ──────────────────────────────────────────── */
+
+.auth-footer {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: 0.8125rem;
+    color: var(--gb-text-muted);
+}
+
+.auth-footer a {
+    color: var(--gb-primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.auth-footer a:hover {
+    text-decoration: underline;
+}
+
+/* ─── Form Groups ──────────────────────────────────────────── */
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+/* ─── Atom: Label ──────────────────────────────────────────── */
+
+.form-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--gb-text-muted);
+    margin-bottom: 0.5rem;
+}
+
+/* ─── Atom: Input ──────────────────────────────────────────── */
+
+.form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: var(--gb-bg);
+    border: 1px solid var(--gb-border);
+    border-radius: 8px;
+    color: var(--gb-text);
+    font-size: 0.9375rem;
+    font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+}
+
+.form-input:focus {
+    border-color: var(--gb-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+}
+
+.form-input::placeholder {
+    color: var(--gb-surface-light);
+}
+
+/* ─── Molecule: PasswordField ──────────────────────────────── */
+
+.password-wrapper {
+    position: relative;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--gb-text-muted);
+    cursor: pointer;
+    font-size: 0.8125rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: color 0.2s;
+}
+
+.password-toggle:hover {
+    color: var(--gb-text);
+}
+
+/* ─── Atom: Button ─────────────────────────────────────────── */
+
+.btn {
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity 0.2s, background 0.2s, transform 0.1s;
+}
+
+.btn-primary {
+    background: var(--gb-primary);
+    color: white;
+    font-weight: 600;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--gb-primary-hover);
+}
+
+.btn-primary:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-block {
+    display: block;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    margin-top: 0.5rem;
+}
+
+/* ─── Atom: Spinner ────────────────────────────────────────── */
+
+.spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ─── Atom: Alert ──────────────────────────────────────────── */
+
+.auth-result {
+    margin-top: 1rem;
+}
+
+.alert {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.alert-error {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--gb-danger);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.alert-success {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--gb-success);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.alert-info {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--gb-info);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+/* ─── Alpine.js: x-cloak ──────────────────────────────────── */
+
+[x-cloak] {
+    display: none !important;
+}

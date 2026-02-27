@@ -5,6 +5,8 @@ compatibility_date = "2024-04-01"
 # Environment Variables
 [vars]
 NODE_ENV = "development"
+# ⚠️  DEV ONLY — for production use: wrangler secret put JWT_SECRET
+JWT_SECRET = "dev-secret-change-me-in-production-min-32-chars!!"
 
 # D1 Database Binding
 [[d1_databases]]
@@ -35,3 +37,9 @@ new_classes = ["RealtimeState"]
 # Observability
 [observability]
 enabled = true
+
+# Module rules — treat CSS as text for static serving
+[[rules]]
+type = "Text"
+globs = ["**/*.css"]
+fallthrough = true
