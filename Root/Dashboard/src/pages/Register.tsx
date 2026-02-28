@@ -14,11 +14,11 @@ import { RegisterForm } from '../components/organisms/RegisterForm'
 export const Register = () => {
     return (
         <AuthLayout
-            title="Register"
-            description="Create your account"
+            title="Registrar"
+            description="Crie sua conta"
             footerLink={{
-                text: 'Already have an account?',
-                label: 'Sign in',
+                text: 'Já tem uma conta?',
+                label: 'Entrar',
                 href: '/login',
             }}
         >

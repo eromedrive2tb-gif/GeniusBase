@@ -22,7 +22,7 @@ interface AuthLayoutProps {
 
 export const AuthLayout = ({ title, description, children, footerLink }: AuthLayoutProps) => {
     return (
-        <html lang="en">
+        <html lang="pt-BR">
             <head>
                 <meta charset="UTF-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -73,7 +73,7 @@ export const AuthLayout = ({ title, description, children, footerLink }: AuthLay
                                 <a href={footerLink.href}>{footerLink.label}</a>
                             </span>
                         ) : (
-                            <span>Powered by GeniusBase Engine</span>
+                            <span>Desenvolvido por GeniusBase Engine</span>
                         )}
                     </div>
                 </div>

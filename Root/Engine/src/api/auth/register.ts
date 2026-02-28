@@ -24,15 +24,15 @@ registerRoute.post('/', async (c) => {
 
     // Validação de input
     if (!email || !password || !confirmPassword) {
-        return c.html(errorAlert('All fields are required.'), 400)
+        return c.html(errorAlert('Todos os campos são obrigatórios.'), 400)
     }
 
     if (password.length < 8) {
-        return c.html(errorAlert('Password must be at least 8 characters.'), 400)
+        return c.html(errorAlert('A senha deve ter pelo menos 8 caracteres.'), 400)
     }
 
     if (password !== confirmPassword) {
-        return c.html(errorAlert('Passwords do not match.'), 400)
+        return c.html(errorAlert('As senhas não coincidem.'), 400)
     }
 
     // Verificar se já existe um usuário com este email globalmente
@@ -43,7 +43,7 @@ registerRoute.post('/', async (c) => {
         .first<User>()
 
     if (existing) {
-        return c.html(errorAlert('An account with this email already exists.'), 409)
+        return c.html(errorAlert('Uma conta com este e-mail já existe.'), 409)
     }
 
     // Criar o hash da senha
@@ -53,7 +53,7 @@ registerRoute.post('/', async (c) => {
     const prefix = email.split('@')[0].replace(/[^a-z0-9]/g, '')
     const shortUuid = crypto.randomUUID().substring(0, 8)
     const tenantId = `t_${crypto.randomUUID().replace(/-/g, '').substring(0, 12)}`
-    const tenantName = `${email.split('@')[0]}'s Workspace`
+    const tenantName = `Workspace de ${email.split('@')[0]}`
     const tenantSlug = `${prefix}-${shortUuid}`
 
     await c.env.DB.prepare(
@@ -81,7 +81,7 @@ registerRoute.post('/', async (c) => {
 
     c.header('HX-Redirect', '/login')
 
-    return c.html(successAlert('Account created successfully. Please log in.'))
+    return c.html(successAlert('Conta criada com sucesso. Por favor, faça login.'))
 })
 
 export { registerRoute }

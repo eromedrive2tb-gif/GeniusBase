@@ -24,7 +24,7 @@ loginRoute.post('/', async (c) => {
 
     // Validação de input
     if (!email || !password) {
-        return c.html(errorAlert('Email and password are required.'), 400)
+        return c.html(errorAlert('E-mail e senha são obrigatórios.'), 400)
     }
 
     // Buscar usuário pelo email (assumindo email único globalmente devido ao auto-provisionamento)
@@ -42,7 +42,7 @@ loginRoute.post('/', async (c) => {
             ...meta,
             metadata: { reason: 'invalid_credentials', email },
         })
-        return c.html(errorAlert('Invalid credentials.'), 401)
+        return c.html(errorAlert('Credenciais inválidas.'), 401)
     }
 
     // Verificar senha
@@ -55,14 +55,14 @@ loginRoute.post('/', async (c) => {
             ...meta,
             metadata: { reason: 'wrong_password' },
         })
-        return c.html(errorAlert('Invalid credentials.'), 401)
+        return c.html(errorAlert('Credenciais inválidas.'), 401)
     }
 
     // Gerar JWT
     const secret = (c.env as unknown as Record<string, string>)['JWT_SECRET']
     if (!secret) {
         console.error('[auth/login] JWT_SECRET not configured')
-        return c.html(errorAlert('Server configuration error.'), 500)
+        return c.html(errorAlert('Erro de configuração do servidor.'), 500)
     }
 
     const jti = crypto.randomUUID()
@@ -86,9 +86,9 @@ loginRoute.post('/', async (c) => {
 
     // Cookie HttpOnly + HTMX redirect
     c.header('Set-Cookie', `auth_token=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=86400`)
-    c.header('HX-Redirect', '/')
+    c.header('HX-Redirect', '/dashboard')
 
-    return c.html(successAlert('Login successful. Redirecting...'))
+    return c.html(successAlert('Login realizado com sucesso. Redirecionando...'))
 })
 
 export { loginRoute }

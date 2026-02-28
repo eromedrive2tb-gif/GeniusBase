@@ -14,11 +14,11 @@ import { LoginForm } from '../components/organisms/LoginForm'
 export const Login = () => {
     return (
         <AuthLayout
-            title="Login"
-            description="Sign in to your tenant dashboard"
+            title="Entrar"
+            description="Faça login no painel do seu tenant"
             footerLink={{
-                text: "Don't have an account?",
-                label: 'Create one',
+                text: "Não tem uma conta?",
+                label: 'Criar uma',
                 href: '/register',
             }}
         >

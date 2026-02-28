@@ -29,9 +29,9 @@ export const LoginForm = () => {
             <FormField
                 id="email"
                 name="email"
-                label="Email"
+                label="E-mail"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="voce@exemplo.com"
                 required
                 autocomplete="email"
             />
@@ -39,7 +39,7 @@ export const LoginForm = () => {
             <PasswordField
                 id="password"
                 name="password"
-                label="Password"
+                label="Senha"
                 autocomplete="current-password"
             />
 
@@ -49,7 +49,7 @@ export const LoginForm = () => {
                 {...{ 'x-bind:disabled': 'loading' }}
             >
                 <span {...{ 'x-show': 'loading', 'x-cloak': '' }}><Spinner /></span>
-                <span {...{ 'x-text': "loading ? 'Signing in...' : 'Sign In'" }}>Sign In</span>
+                <span {...{ 'x-text': "loading ? 'Entrando...' : 'Entrar'" }}>Entrar</span>
             </Button>
 
             <div id="auth-result" class="auth-result"></div>

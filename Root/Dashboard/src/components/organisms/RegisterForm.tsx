@@ -28,9 +28,9 @@ export const RegisterForm = () => {
             <FormField
                 id="email"
                 name="email"
-                label="Email"
+                label="E-mail"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="voce@exemplo.com"
                 required
                 autocomplete="email"
             />
@@ -38,14 +38,14 @@ export const RegisterForm = () => {
             <PasswordField
                 id="password"
                 name="password"
-                label="Password"
+                label="Senha"
                 autocomplete="new-password"
             />
 
             <PasswordField
                 id="confirm_password"
                 name="confirm_password"
-                label="Confirm Password"
+                label="Confirmar Senha"
                 autocomplete="new-password"
             />
 
@@ -55,7 +55,7 @@ export const RegisterForm = () => {
                 {...{ 'x-bind:disabled': 'loading' }}
             >
                 <span {...{ 'x-show': 'loading', 'x-cloak': '' }}><Spinner /></span>
-                <span {...{ 'x-text': "loading ? 'Creating account...' : 'Create Account'" }}>Create Account</span>
+                <span {...{ 'x-text': "loading ? 'Criando conta...' : 'Criar Conta'" }}>Criar Conta</span>
             </Button>
 
             <div id="auth-result" class="auth-result"></div>

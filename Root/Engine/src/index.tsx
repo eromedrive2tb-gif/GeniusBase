@@ -6,8 +6,11 @@ import { Login } from '../../Dashboard/src/pages/Login'
 import { Register } from '../../Dashboard/src/pages/Register'
 import { authRoutes } from './api/auth/index'
 
+import { Index } from '../../Dashboard/src/pages/Index'
+
 // CSS imports (raw text for static serving)
 import authCss from '../../Dashboard/src/styles/auth.css'
+import mainCss from '../../Dashboard/src/styles/main.css'
 
 const app = new Hono<{ Bindings: Env }>()
 
@@ -17,9 +20,19 @@ app.get('/styles/auth.css', (c) => {
     return c.text(authCss, 200, { 'Content-Type': 'text/css' })
 })
 
-// ─── Dashboard Routes ──────────────────────────────────────
+app.get('/styles/main.css', (c) => {
+    return c.text(mainCss, 200, { 'Content-Type': 'text/css' })
+})
+
+// ─── Landing Page ──────────────────────────────────────────
 
 app.get('/', (c) => {
+    return c.html(<Index />)
+})
+
+// ─── Dashboard Routes ──────────────────────────────────────
+
+app.get('/dashboard', (c) => {
     return c.html(<Home />)
 })
 
