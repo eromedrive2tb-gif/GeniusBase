@@ -25,6 +25,7 @@ export const DashboardLayout = ({ title, children }: DashboardLayoutProps) => {
                 <meta name="description" content="Painel Multi-Tenant GeniusBase" />
 
                 <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+                <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
                 <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
                 {/* HTMX: Allow swapping error responses (4xx/5xx) into the DOM */}

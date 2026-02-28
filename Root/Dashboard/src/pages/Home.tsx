@@ -12,16 +12,27 @@ import { DashboardLayout } from '../components/templates/DashboardLayout'
 import { DashboardTabs } from '../components/organisms/DashboardTabs'
 import { CoreApisPanel } from '../components/organisms/CoreApisPanel'
 import { GatewaysPanel } from '../components/organisms/GatewaysPanel'
+import { AuthPanel } from '../components/organisms/AuthPanel'
+import { DatabasePanel } from '../components/organisms/DatabasePanel'
 import { DocsPanel } from '../components/organisms/DocsPanel'
 
-export const Home = () => {
+type HomeProps = {
+  token: string
+  users: any[]
+  customers: any[]
+  products: any[]
+}
+
+export const Home = ({ token, users, customers, products }: HomeProps) => {
   return (
     <DashboardLayout title="Painel — GeniusBase">
       {/* ─── Tabs ─────────────────────────────────── */}
       <DashboardTabs />
 
       {/* ─── Panels ───────────────────────────────── */}
-      <CoreApisPanel />
+      <CoreApisPanel token={token} />
+      <AuthPanel users={users} />
+      <DatabasePanel customers={customers} products={products} />
       <GatewaysPanel />
       <DocsPanel />
     </DashboardLayout>

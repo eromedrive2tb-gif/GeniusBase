@@ -1,84 +1,37 @@
 /** @jsxImportSource hono/jsx */
 
-/**
- * Organism: DocsPanel
- * Root/Dashboard/src/components/organisms/DocsPanel.tsx
- *
- * Responsabilidade: Renderizar puramente a aba 3 (Documentação & Integração)
- * focada na segurança do Frontend e o snippet de configuração do JWT.
- */
+import { baasApiDocs } from '../../data/apiDocs'
+import { AccordionItem } from '../molecules/AccordionItem'
 
 export const DocsPanel = () => {
     return (
-        <div x-show="tab === 'docs'" x-cloak="">
-            <div class="dash-panel">
-                <h2 class="panel-title">Documentação &amp; Integração</h2>
-                <p class="panel-subtitle">Como integrar as APIs GeniusBase com seu frontend Serverless.</p>
+        <div x-show="tab === 'docs'" x-cloak="" class="dash-panel">
+            <h2 class="panel-title">Documentação de Integração API (BaaS)</h2>
+            <p class="panel-subtitle">Guia oficial para interagir com o Backend-as-a-Service do GeniusBase no seu próprio frontend serverless.</p>
 
-                {/* Auth Flow */}
-                <div class="doc-section">
-                    <h3 class="doc-section__title">1. Fluxo de Autenticação</h3>
-                    <p>
-                        Chame <code>POST /api/auth/login</code> com <code>email</code> e <code>password</code>.
-                        O servidor retorna um JWT em um cookie <code>HttpOnly</code> (para painéis SSR) e também via
-                        um cabeçalho <code>HX-Redirect</code> para fluxos HTMX.
-                    </p>
-                    <p>
-                        Para frontends SPA/Serverless (Vite, React, Lovable), você receberá o token no
-                        corpo da resposta e deve armazená-lo em memória (nunca no <code>localStorage</code>).
-                    </p>
+            <div class="doc-section" style="margin-bottom: 2rem;">
+                <h3 class="doc-section__title">Introdução & Autenticação</h3>
+                <p style="margin-bottom: 0.75rem; color: var(--gb-text-muted); font-size: 0.875rem;">
+                    Todas as requisições para os endpoints <code>/api/v1/*</code> exigem o seu <strong>Token de Tenant</strong> para identificar o seu Workspace.
+                </p>
+                <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--gb-border); border-radius: var(--gb-radius-sm); padding: 1rem;">
+                    <p style="font-size: 0.8125rem; margin-bottom: 0.5rem; color: var(--gb-text-bright);">Envie o token do seu Tenant (Workspace) no Header de todas as requisições servidor-para-servidor:</p>
+                    <pre style="background: #0f172a; padding: 0.75rem; border-radius: 4px; border: 1px solid #1e293b; overflow-x: auto;">
+                        <code style="color: var(--gb-cyan); font-family: monospace; font-size: 0.875rem;">Authorization: Bearer &lt;SEU_TOKEN_DE_TENANT&gt;</code>
+                    </pre>
                 </div>
+                <p style="margin-top: 1rem; color: var(--gb-amber); font-size: 0.8125rem;">
+                    <strong>Aviso:</strong> Para as rotas de End-Users (como <code>/api/v1/auth/login</code> e <code>register</code>), você também passará o Header acima para que o GeniusBase saiba de qual Workspace a requisição se destina. Após o login, a API retornará um Token JWT de End-User.
+                </p>
+            </div>
 
-                {/* Security Warning */}
-                <div class="doc-important">
-                    <div class="doc-important__title">⚠ Regra Crítica de Segurança</div>
-                    <p>
-                        Seu frontend SPA <strong>NUNCA</strong> deve ter acesso a segredos de backend
-                        (<code>JWT_SECRET</code>, chaves de API, credenciais de banco de dados). O frontend apenas recebe
-                        um JWT após o login e o envia no cabeçalho <code>Authorization: Bearer &lt;token&gt;</code>
-                        em requisições subsequentes. Toda validação ocorre no lado do servidor.
-                    </p>
-                </div>
+            <div class="doc-section" x-data="{ activeAccordion: null }">
+                <h3 class="doc-section__title" style="margin-bottom: 1rem;">Referência de API</h3>
 
-                {/* API Integration */}
-                <div class="doc-section">
-                    <h3 class="doc-section__title">2. Chamando APIs do seu Frontend</h3>
-                    <p>
-                        Após obter o JWT, use o <code>fetch()</code> padrão para chamar qualquer endpoint escopado por tenant.
-                        O middleware resolve automaticamente o tenant a partir da reivindicação <code>tid</code> do token.
-                    </p>
-                </div>
-
-                {/* Code Snippet */}
-                <div class="code-block">
-                    <div class="code-block__header">
-                        <span class="code-block__lang">JavaScript</span>
-                    </div>
-                    <pre dangerouslySetInnerHTML={{
-                        __html: `<span class="cmt">// Exemplo: Buscar produtos para o tenant autenticado</span>
-<span class="kw">const</span> <span class="var">token</span> = <span class="str">'eyJhbGciOi...'</span>; <span class="cmt">// obtido no login</span>
-
-<span class="kw">const</span> <span class="var">response</span> = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'https://seu-worker.dev/api/v1/products'</span>, {
-  <span class="var">method</span>: <span class="str">'GET'</span>,
-  <span class="var">headers</span>: {
-    <span class="str">'Authorization'</span>: <span class="str">\`Bearer \${token}\`</span>,
-    <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span>,
-  },
-});
-
-<span class="kw">const</span> <span class="var">products</span> = <span class="kw">await</span> <span class="var">response</span>.<span class="fn">json</span>();
-<span class="fn">console</span>.<span class="fn">log</span>(<span class="var">products</span>);` }}></pre>
-                </div>
-
-                {/* Supported Frameworks */}
-                <div class="doc-section">
-                    <h3 class="doc-section__title">3. Frameworks de Frontend Suportados</h3>
-                    <ul>
-                        <li><strong>Vite + React/Vue</strong> — Use <code>fetch()</code> na sua camada de API</li>
-                        <li><strong>Lovable</strong> — Ações HTTP com cabeçalho Bearer</li>
-                        <li><strong>HTMX (SSR)</strong> — Token no cookie <code>HttpOnly</code>, sem necessidade de JS</li>
-                        <li><strong>JS Puro</strong> — <code>fetch()</code> padrão como mostrado acima</li>
-                    </ul>
+                <div class="accordion-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    {baasApiDocs.map((doc, index) => (
+                        <AccordionItem data={doc} index={index + 1} />
+                    ))}
                 </div>
             </div>
         </div>

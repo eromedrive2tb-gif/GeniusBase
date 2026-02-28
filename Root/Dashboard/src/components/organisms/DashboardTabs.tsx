@@ -16,9 +16,11 @@ interface Tab {
 }
 
 const tabs: Tab[] = [
-    { id: 'core', label: 'APIs Principais', icon: '⚡' },
+    { id: 'database', label: 'Tabelas de Dados', icon: '🗄️' },
+    { id: 'auth', label: 'Usuários Finais', icon: '👥' },
+    { id: 'core', label: 'APIs Principais', icon: '🔑' },
+    { id: 'docs', label: 'Documentação', icon: '📖' },
     { id: 'gateways', label: 'Gateways de Pagamento', icon: '💳' },
-    { id: 'docs', label: 'Docs & Integração', icon: '📖' },
 ]
 
 export const DashboardTabs = () => {
@@ -28,11 +30,9 @@ export const DashboardTabs = () => {
                 <button
                     key={t.id}
                     role="tab"
-                    class="dash-tab"
                     {...{
                         'x-on:click': `tab = '${t.id}'`,
                         'x-bind:class': `tab === '${t.id}' ? 'dash-tab dash-tab--active' : 'dash-tab'`,
-                        'x-bind:aria-selected': `tab === '${t.id}'`,
                     }}
                 >
                     <span>{t.icon}</span> {t.label}

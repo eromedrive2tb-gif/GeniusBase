@@ -13,6 +13,7 @@ JWT_SECRET = "dev-secret-change-me-in-production-min-32-chars!!"
 binding = "DB"
 database_name = "genius-base-db"
 database_id = "REPLACE_WITH_D1_ID"
+migrations_dir = "Root/Engine/src/db/migrations"
 
 # KV Namespace Binding
 [[kv_namespaces]]

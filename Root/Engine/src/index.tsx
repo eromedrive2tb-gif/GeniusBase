@@ -30,10 +30,33 @@ app.get('/', (c) => {
     return c.html(<Index />)
 })
 
+import { getCookie } from 'hono/cookie'
+
 // ─── Dashboard Routes ──────────────────────────────────────
 
-app.get('/dashboard', (c) => {
-    return c.html(<Home />)
+app.get('/dashboard', async (c) => {
+    const token = getCookie(c, 'auth_token') || ''
+
+    // We must decode the token to get the tenantId.
+    // In a real scenario we'd use verifyToken here. But since this is SSR we'll just parse the payload.
+    let tenantId = ''
+    try {
+        const payloadStr = atob(token.split('.')[1])
+        tenantId = JSON.parse(payloadStr).tid
+    } catch (e) { /* ignore */ }
+
+    // Obter dados reais das tabelas para o painel BaaS
+    let users: any[] = []
+    let customers: any[] = []
+    let products: any[] = []
+
+    if (tenantId) {
+        users = (await c.env.DB.prepare('SELECT id, email, created_at FROM tenant_users WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 50').bind(tenantId).all()).results || []
+        customers = (await c.env.DB.prepare('SELECT id, name, email, created_at FROM customers WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 50').bind(tenantId).all()).results || []
+        products = (await c.env.DB.prepare('SELECT id, name, price, stock, created_at FROM products WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 50').bind(tenantId).all()).results || []
+    }
+
+    return c.html(<Home token={token} users={users} customers={customers} products={products} />)
 })
 
 app.get('/login', (c) => {
@@ -46,7 +69,16 @@ app.get('/register', (c) => {
 
 // ─── API Routes ────────────────────────────────────────────
 
+import { meRoute } from './api/auth/me'
+import { endUserAuthRoutes } from './api/v1/auth'
+import { customersRoute } from './api/v1/customers'
+import { productsRoute } from './api/v1/products'
+
 app.route('/api/auth', authRoutes)
+app.route('/api/auth/me', meRoute)
+app.route('/api/v1/auth', endUserAuthRoutes)
+app.route('/api/v1/customers', customersRoute)
+app.route('/api/v1/products', productsRoute)
 
 // HTMX Example API
 app.get('/api/hello', (c) => {

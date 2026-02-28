@@ -12,8 +12,12 @@ export const GatewaysPanel = () => {
     return (
         <div x-show="tab === 'gateways'" x-cloak="">
             <div class="dash-panel">
-                <h2 class="panel-title">Gateways de Pagamento</h2>
-                <p class="panel-subtitle">Agregador Multi-Gateway Unificado — um endpoint, qualquer provedor.</p>
+                <div class="dash-panel__header">
+                    <div>
+                        <h2 class="dash-panel__title">Gateways de Pagamento</h2>
+                        <p class="dash-panel__subtitle">Agregador Multi-Gateway Unificado — um endpoint, qualquer provedor.</p>
+                    </div>
+                </div>
 
                 <div class="gw-list">
                     {/* Stripe */}
