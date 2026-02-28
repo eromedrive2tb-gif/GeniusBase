@@ -18,7 +18,7 @@ export interface User {
     tenant_id: string
     email: string
     password_hash: string
-    role: 'admin' | 'member' | 'viewer'
+    role: 'owner' | 'admin' | 'member' | 'viewer'
     created_at: string
 }
 
@@ -41,7 +41,7 @@ export interface TokenPayload {
 
 // ─── EDA Event Types ───────────────────────────────────────
 
-export type AuthEventType = 'AUTH_SUCCESS' | 'AUTH_FAILED'
+export type AuthEventType = 'AUTH_SUCCESS' | 'AUTH_FAILED' | 'API_KEY_GENERATED'
 
 export interface AuthEvent {
     id: string

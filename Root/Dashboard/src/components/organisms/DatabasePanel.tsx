@@ -3,6 +3,15 @@
 /**
  * Organism: Database Panel (Customers & Products)
  * Root/Dashboard/src/components/organisms/DatabasePanel.tsx
+ *
+ * Renderiza a estrutura estática do painel de dados.
+ * Toda a reatividade de dados (fetch, insert, estado) é gerenciada pelo
+ * Alpine.js controller `databaseController()` definido na <script> abaixo,
+ * que comunica EXCLUSIVAMENTE via `window.rpc` (WebSocket RPC).
+ *
+ * Os dados iniciais são hidratados via SSR (props teachers/products) para
+ * evitar um FOUC (Flash of Unstyled Content) no carregamento inicial da página.
+ * Mutações (CREATE) atualizam o array reativo localmente, sem re-fetch.
  */
 
 type DatabasePanelProps = {
@@ -11,15 +20,27 @@ type DatabasePanelProps = {
 }
 
 export const DatabasePanel = ({ customers, products }: DatabasePanelProps) => {
+    // Serialize SSR data to JSON for Alpine hydration — escape </script> sequences
+    const initCustomers = JSON.stringify(customers).replace(/<\/script>/gi, '<\\/script>')
+    const initProducts = JSON.stringify(products).replace(/<\/script>/gi, '<\\/script>')
+
     return (
-        <div class="dash-panel" x-show="tab === 'database'" style="display: none;" x-data="{ dbTab: 'customers' }">
+        <div
+            class="dash-panel"
+            x-show="tab === 'database'"
+            style="display: none;"
+            {...{
+                'x-data': `databaseController(${initCustomers}, ${initProducts})`,
+                'x-init': 'init()',
+            }}
+        >
             <div class="dash-panel__header">
                 <div>
                     <h2 class="dash-panel__title">Tabelas de Dados</h2>
                     <p class="dash-panel__subtitle">Ferramenta gerencial para visualização e adição manual de registros.</p>
                 </div>
 
-                {/* Sub-tabs for Database tables */}
+                {/* Sub-tabs */}
                 <nav class="dash-tabs dash-tabs--sub">
                     <button
                         {...{
@@ -40,19 +61,20 @@ export const DatabasePanel = ({ customers, products }: DatabasePanelProps) => {
                 </nav>
             </div>
 
-            {/* Customers Table View */}
+            {/* ─── Customers Tab ──────────────────────────── */}
             <div class="table-container" x-show="dbTab === 'customers'">
-                {/* Single Insert Action Bar */}
                 <div class="action-bar">
-                    <form
-                        hx-post="/api/v1/customers"
-                        hx-ext="json-enc"
-                        {...{ 'hx-on:htmx:after-request': 'if(event.detail.successful) window.location.reload()' }}
-                    >
+                    <form {...{ 'x-on:submit.prevent': 'submitCustomer($event)' }}>
                         <span class="action-bar__label">Adicionar Cliente Manualmente:</span>
                         <input type="text" name="name" placeholder="Nome Completo" required class="form-input" />
-                        <input type="email" name="email" placeholder="E-mail do Cliente" required class="form-input" />
-                        <button type="submit" class="btn-outline-cyan">+ Criar Registro</button>
+                        <input type="email" name="email" placeholder="E-mail do Cliente" class="form-input" />
+                        <button
+                            type="submit"
+                            class="btn-outline-cyan"
+                            {...{ 'x-bind:disabled': 'loadingCustomer' }}
+                        >
+                            <span {...{ 'x-text': "loadingCustomer ? 'Salvando…' : '+ Criar Registro'" }}></span>
+                        </button>
                     </form>
                     <button
                         class="btn-outline-cyan"
@@ -61,6 +83,12 @@ export const DatabasePanel = ({ customers, products }: DatabasePanelProps) => {
                         📥 Exportar CSV
                     </button>
                 </div>
+
+                {/* Inline error banner */}
+                <p
+                    style="color: #ff6b6b; padding: 0 1rem 0.5rem; font-size: 0.82rem; min-height: 1.25rem;"
+                    {...{ 'x-text': 'customerError' }}
+                ></p>
 
                 <table class="dash-table" id="customers-table">
                     <thead>
@@ -72,40 +100,45 @@ export const DatabasePanel = ({ customers, products }: DatabasePanelProps) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {customers.length === 0 ? (
+                        {/* Empty state shown while customers array is empty */}
+                        <template {...{ 'x-if': 'customers.length === 0' }}>
                             <tr>
                                 <td colspan={4} style="text-align: center; padding: 3rem;" class="dash-table__muted">
-                                    Nenhum cliente (customer) encontrado. Use o formulário acima para inserir.
+                                    Nenhum cliente encontrado. Use o formulário acima para inserir.
                                 </td>
                             </tr>
-                        ) : (
-                            customers.map((c: any) => (
-                                <tr key={c.id}>
-                                    <td><span class="dash-table__code">{c.id}</span></td>
-                                    <td>{c.name}</td>
-                                    <td class="dash-table__muted">{c.email}</td>
-                                    <td class="dash-table__muted">{new Date(c.created_at * 1000).toLocaleString('pt-BR')}</td>
-                                </tr>
-                            ))
-                        )}
+                        </template>
+
+                        {/* Reactive rows — rendered by Alpine, keyed on id */}
+                        <template
+                            {...{ 'x-for': 'c in customers', ':key': 'c.id' }}
+                        >
+                            <tr>
+                                <td><span class="dash-table__code" {...{ 'x-text': 'c.id' }}></span></td>
+                                <td {...{ 'x-text': 'c.name' }}></td>
+                                <td class="dash-table__muted" {...{ 'x-text': 'c.email ?? "—"' }}></td>
+                                <td class="dash-table__muted" {...{ 'x-text': 'new Date(c.created_at * 1000).toLocaleString("pt-BR")' }}></td>
+                            </tr>
+                        </template>
                     </tbody>
                 </table>
             </div>
 
-            {/* Products Table View */}
+            {/* ─── Products Tab ───────────────────────────── */}
             <div class="table-container" x-show="dbTab === 'products'" style="display: none;">
-                {/* Single Insert Action Bar */}
                 <div class="action-bar">
-                    <form
-                        hx-post="/api/v1/products"
-                        hx-ext="json-enc"
-                        {...{ 'hx-on:htmx:after-request': 'if(event.detail.successful) window.location.reload()' }}
-                    >
+                    <form {...{ 'x-on:submit.prevent': 'submitProduct($event)' }}>
                         <span class="action-bar__label">Adicionar Produto Manualmente:</span>
                         <input type="text" name="name" placeholder="Nome do Produto" required class="form-input" style="width: 250px;" />
                         <input type="number" name="price" placeholder="Preço (Centavos)" required class="form-input" style="width: 150px;" />
-                        <input type="number" name="stock" placeholder="Estoque Inic." value="100" required class="form-input" style="width: 120px;" />
-                        <button type="submit" class="btn-outline-cyan">+ Criar Registro</button>
+                        <input type="number" name="stock" placeholder="Estoque Inic." value="100" class="form-input" style="width: 120px;" />
+                        <button
+                            type="submit"
+                            class="btn-outline-cyan"
+                            {...{ 'x-bind:disabled': 'loadingProduct' }}
+                        >
+                            <span {...{ 'x-text': "loadingProduct ? 'Salvando…' : '+ Criar Registro'" }}></span>
+                        </button>
                     </form>
                     <button
                         class="btn-outline-cyan"
@@ -114,6 +147,11 @@ export const DatabasePanel = ({ customers, products }: DatabasePanelProps) => {
                         📥 Exportar CSV
                     </button>
                 </div>
+
+                <p
+                    style="color: #ff6b6b; padding: 0 1rem 0.5rem; font-size: 0.82rem; min-height: 1.25rem;"
+                    {...{ 'x-text': 'productError' }}
+                ></p>
 
                 <table class="dash-table" id="products-table">
                     <thead>
@@ -125,48 +163,116 @@ export const DatabasePanel = ({ customers, products }: DatabasePanelProps) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {products.length === 0 ? (
+                        <template {...{ 'x-if': 'products.length === 0' }}>
                             <tr>
                                 <td colspan={4} style="text-align: center; padding: 3rem;" class="dash-table__muted">
                                     Nenhum produto cadastrado. Use o formulário acima para inserir.
                                 </td>
                             </tr>
-                        ) : (
-                            products.map((p: any) => (
-                                <tr key={p.id}>
-                                    <td><span class="dash-table__code">{p.id}</span></td>
-                                    <td>{p.name}</td>
-                                    <td class="dash-table__muted" style="color: var(--gb-cyan);">
-                                        R$ {(p.price / 100).toFixed(2)}
-                                    </td>
-                                    <td class="dash-table__muted">{p.stock}</td>
-                                </tr>
-                            ))
-                        )}
+                        </template>
+
+                        <template {...{ 'x-for': 'p in products', ':key': 'p.id' }}>
+                            <tr>
+                                <td><span class="dash-table__code" {...{ 'x-text': 'p.id' }}></span></td>
+                                <td {...{ 'x-text': 'p.name' }}></td>
+                                <td class="dash-table__muted" style="color: var(--gb-cyan);"
+                                    {...{ 'x-text': '"R$ " + (p.price / 100).toFixed(2)' }}></td>
+                                <td class="dash-table__muted" {...{ 'x-text': 'p.stock' }}></td>
+                            </tr>
+                        </template>
                     </tbody>
                 </table>
             </div>
 
-            {/* Alpine.js function for CSV Export */}
+            {/* ─── Alpine Controller + Utilities ─────────── */}
             <script dangerouslySetInnerHTML={{
                 __html: `
-                window.exportTableToCSV = function(filename, gridId) {
-                    var csv = [];
-                    var rows = document.querySelectorAll('#' + gridId + ' tr');
-                    for (var i = 0; i < rows.length; i++) {
-                        var row = [], cols = rows[i].querySelectorAll('td, th');
-                        for (var j = 0; j < cols.length; j++) 
-                            row.push('"' + cols[j].innerText.replace(/"/g, '""') + '"');
-                        csv.push(row.join(','));
-                    }
-                    var csvFile = new Blob([csv.join('\\n')], {type: 'text/csv'});
-                    var downloadLink = document.createElement('a');
-                    downloadLink.download = filename;
-                    downloadLink.href = window.URL.createObjectURL(csvFile);
-                    downloadLink.style.display = 'none';
-                    document.body.appendChild(downloadLink);
-                    downloadLink.click();
+                function databaseController(initCustomers, initProducts) {
+                    return {
+                        dbTab: 'customers',
+                        customers: initCustomers,
+                        products: initProducts,
+                        loadingCustomer: false,
+                        loadingProduct: false,
+                        customerError: '',
+                        productError: '',
+
+                        async init() {
+                            // Data hydrated via SSR — no RPC call needed on load.
+                            // Listen for domain events broadcast by the DO to peer sessions.
+                            // Deduplication: the CREATOR already unshifted() via Promise resolve,
+                            // so we check the id before adding to avoid a double-entry.
+                            window.addEventListener('rpc_push', (e) => {
+                                const { event, payload } = e.detail || {};
+                                if (event === 'CUSTOMER_CREATED' && payload?.id) {
+                                    if (!this.customers.find(c => c.id === payload.id)) {
+                                        this.customers.unshift(payload);
+                                    }
+                                }
+                                if (event === 'PRODUCT_CREATED' && payload?.id) {
+                                    if (!this.products.find(p => p.id === payload.id)) {
+                                        this.products.unshift(payload);
+                                    }
+                                }
+                            });
+                        },
+
+                        async submitCustomer(e) {
+                            const form = e.target;
+                            const name  = form.elements['name'].value.trim();
+                            const email = form.elements['email'].value.trim();
+                            if (!name) { this.customerError = 'O nome é obrigatório.'; return; }
+                            this.customerError = '';
+                            this.loadingCustomer = true;
+                            try {
+                                const record = await window.rpc.request('CREATE_CUSTOMER', { name, email });
+                                this.customers.unshift(record);
+                                form.reset();
+                            } catch (err) {
+                                this.customerError = err.message || 'Erro ao criar cliente.';
+                            } finally {
+                                this.loadingCustomer = false;
+                            }
+                        },
+
+                        async submitProduct(e) {
+                            const form  = e.target;
+                            const name  = form.elements['name'].value.trim();
+                            const price = Number(form.elements['price'].value);
+                            const stock = Number(form.elements['stock'].value) || 0;
+                            if (!name || isNaN(price)) { this.productError = 'Nome e Preço são obrigatórios.'; return; }
+                            this.productError = '';
+                            this.loadingProduct = true;
+                            try {
+                                const record = await window.rpc.request('CREATE_PRODUCT', { name, price, stock });
+                                this.products.unshift(record);
+                                form.reset();
+                            } catch (err) {
+                                this.productError = err.message || 'Erro ao criar produto.';
+                            } finally {
+                                this.loadingProduct = false;
+                            }
+                        },
+                    };
                 }
+
+                window.exportTableToCSV = function(filename, gridId) {
+                    const csv = [];
+                    const rows = document.querySelectorAll('#' + gridId + ' tr');
+                    for (const row of rows) {
+                        const cols = row.querySelectorAll('td, th');
+                        csv.push([...cols].map(c => '"' + c.innerText.replace(/"/g, '""') + '"').join(','));
+                    }
+                    const blob = new Blob([csv.join('\\n')], { type: 'text/csv' });
+                    const a = Object.assign(document.createElement('a'), {
+                        download: filename,
+                        href: URL.createObjectURL(blob),
+                        style: 'display:none',
+                    });
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                };
             `}}></script>
         </div>
     )

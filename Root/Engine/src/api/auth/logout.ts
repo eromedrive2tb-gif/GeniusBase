@@ -10,11 +10,11 @@ import { Hono } from 'hono'
 import type { AuthVariables } from '../../types/auth'
 import { verifyToken } from '../../utils/token'
 import { successAlert } from '../../utils/htmlFragments'
-import { tenantAuth } from '../../middlewares/tenantAuth'
+import { adminAuth } from '../../middlewares/adminAuth'
 
 const logoutRoute = new Hono<{ Bindings: Env; Variables: AuthVariables }>()
 
-logoutRoute.post('/', tenantAuth, async (c) => {
+logoutRoute.post('/', adminAuth, async (c) => {
     const authHeader = c.req.header('Authorization')
     const cookieHeader = c.req.header('Cookie') || ''
     const cookieMatch = cookieHeader.match(/(?:^|;\s*)auth_token=([^;]*)/)
@@ -24,7 +24,7 @@ logoutRoute.post('/', tenantAuth, async (c) => {
         : cookieMatch ? decodeURIComponent(cookieMatch[1]) : null
 
     if (token) {
-        const secret = (c.env as unknown as Record<string, string>)['JWT_SECRET']
+        const secret = c.env.ADMIN_JWT_SECRET
         if (secret) {
             try {
                 const payload = await verifyToken(token, secret)

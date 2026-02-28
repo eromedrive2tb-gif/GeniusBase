@@ -42,7 +42,7 @@ endUserLoginRoute.post('/', async (c) => {
     }
 
     // Gerar End-User JWT
-    const secret = (c.env as unknown as Record<string, string>)['JWT_SECRET']
+    const secret = c.env.ENDUSER_JWT_SECRET
     if (!secret) {
         return c.json({ error: 'Server configuration error' }, 500)
     }

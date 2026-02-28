@@ -17,20 +17,19 @@ import { DatabasePanel } from '../components/organisms/DatabasePanel'
 import { DocsPanel } from '../components/organisms/DocsPanel'
 
 type HomeProps = {
-  token: string
   users: any[]
   customers: any[]
   products: any[]
 }
 
-export const Home = ({ token, users, customers, products }: HomeProps) => {
+export const Home = ({ users, customers, products }: HomeProps) => {
   return (
     <DashboardLayout title="Painel — GeniusBase">
       {/* ─── Tabs ─────────────────────────────────── */}
       <DashboardTabs />
 
       {/* ─── Panels ───────────────────────────────── */}
-      <CoreApisPanel token={token} />
+      <CoreApisPanel />
       <AuthPanel users={users} />
       <DatabasePanel customers={customers} products={products} />
       <GatewaysPanel />

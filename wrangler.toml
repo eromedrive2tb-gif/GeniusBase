@@ -5,8 +5,11 @@ compatibility_date = "2024-04-01"
 # Environment Variables
 [vars]
 NODE_ENV = "development"
-# ⚠️  DEV ONLY — for production use: wrangler secret put JWT_SECRET
-JWT_SECRET = "dev-secret-change-me-in-production-min-32-chars!!"
+# ⚠️  DEV ONLY — for production use:
+#   wrangler secret put ADMIN_JWT_SECRET
+#   wrangler secret put ENDUSER_JWT_SECRET
+ADMIN_JWT_SECRET = "admin-dev-secret-change-me-in-production-min-32!!"
+ENDUSER_JWT_SECRET = "enduser-dev-secret-change-me-in-production-min-32!"
 
 # D1 Database Binding
 [[d1_databases]]
@@ -30,10 +33,14 @@ bucket_name = "genius-base-storage"
 name = "REALTIME_STATE"
 class_name = "RealtimeState"
 
+[[durable_objects.bindings]]
+name = "DASHBOARD_RPC_STATE"
+class_name = "DashboardRPCState"
+
 # Durable Objects Migrations
 [[migrations]]
 tag = "v1"
-new_classes = ["RealtimeState"]
+new_classes = ["RealtimeState", "DashboardRPCState"]
 
 # Observability
 [observability]
@@ -44,3 +51,9 @@ enabled = true
 type = "Text"
 globs = ["**/*.css"]
 fallthrough = true
+
+# Treat Dashboard client-side scripts as text for static serving
+[[rules]]
+type = "Text"
+globs = ["**/Dashboard/src/scripts/*.js"]
+fallthrough = false

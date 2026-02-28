@@ -59,9 +59,9 @@ loginRoute.post('/', async (c) => {
     }
 
     // Gerar JWT
-    const secret = (c.env as unknown as Record<string, string>)['JWT_SECRET']
+    const secret = c.env.ADMIN_JWT_SECRET
     if (!secret) {
-        console.error('[auth/login] JWT_SECRET not configured')
+        console.error('[auth/login] ADMIN_JWT_SECRET not configured')
         return c.html(errorAlert('Erro de configuração do servidor.'), 500)
     }
 

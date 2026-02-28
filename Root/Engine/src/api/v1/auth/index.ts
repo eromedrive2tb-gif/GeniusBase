@@ -8,14 +8,14 @@
  */
 
 import { Hono } from 'hono'
-import { tenantAuth } from '../../../middlewares/tenantAuth'
+import { apiKeyAuth } from '../../../middlewares/apiKeyAuth'
 import { endUserRegisterRoute } from './register'
 import { endUserLoginRoute } from './login'
 
 const endUserAuthRoutes = new Hono<{ Bindings: Env }>()
 
 // Todas as rotas de Auth de End-Users exigem a API Key do Tenant
-endUserAuthRoutes.use('*', tenantAuth)
+endUserAuthRoutes.use('*', apiKeyAuth)
 
 // Registrar End-User no Tenant Atual
 endUserAuthRoutes.route('/register', endUserRegisterRoute)

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App do Cliente - Powered by GeniusBase</title>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, sans-serif;
+            background: #111;
+            color: #eee;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #06b6d4;
+            margin-bottom: 0.25rem;
+        }
+
+        p {
+            color: #888;
+            margin-top: 0;
+        }
+
+        .actions {
+            display: flex;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 8px 18px;
+            background: #06b6d4;
+            color: #000;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 4px;
+            transition: opacity 0.15s;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+            color: #888;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #f87171;
+            transition: background 0.3s;
+        }
+
+        .dot.connected {
+            background: #4ade80;
+        }
+
+        h3 {
+            color: #06b6d4;
+            margin-bottom: 0.5rem;
+        }
+
+        pre {
+            background: #1a1a1a;
+            padding: 1rem;
+            border-left: 3px solid #06b6d4;
+            overflow-x: auto;
+            font-size: 0.82rem;
+            line-height: 1.6;
+            min-height: 120px;
+            border-radius: 0 4px 4px 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .warn {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.4);
+            color: #fbbf24;
+            padding: 0.75rem 1rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🚀 Meu App Serverless</h1>
+    <p>Testando a integração com o BaaS GeniusBase via SDK</p>
+
+    <div class="warn">
+        ⚠️ Substitua <code>SERVICE_API_KEY</code> abaixo pela chave gerada no Dashboard antes de testar.
+    </div>
+
+    <div class="status-bar">
+        <div class="dot" id="ws-dot"></div>
+        <span id="ws-status">Conectando ao Realtime…</span>
+    </div>
+
+    <div class="actions">
+        <button id="btn-insert">⚡ 1. Criar Produto Falso</button>
+        <button id="btn-fetch">📋 2. Listar Produtos</button>
+        <button id="btn-clear" style="background:#374151; color:#eee;">🗑 Limpar Log</button>
+    </div>
+
+    <h3>Logs ao Vivo</h3>
+    <pre id="log-output">Aguardando ações…</pre>
+
+    <script type="module">
+        // ──────────────────────────────────────────────────────────────────────────
+        // CONFIGURAÇÃO — edite aqui antes de testar
+        // ──────────────────────────────────────────────────────────────────────────
+        const GB_URL = 'http://localhost:8787'
+        const SERVICE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyZmI5NDc1My1kZWIwLTRmNzgtODBhMy0xZmZkMjBkN2MyZTciLCJ0aWQiOiJ0X2Q0MjQzZGI2OGJlZiIsImp0aSI6IjdmZjljODE5LTQwN2ItNDIyOC1hODgyLWExMjE0YmI1Nzc4YSIsInJvbGUiOiJzZXJ2aWNlIiwiaWF0IjoxNzcyMzA2MzE5LCJleHAiOjE4MDM4NDIzMTl9.dN9PVBBNAjSFIgFDlrJBTB7_kAHIDKSq9d5_iAHlRFw'
+        // ──────────────────────────────────────────────────────────────────────────
+
+        // Importa o SDK compilado diretamente (ESM)
+        import { createClient } from '/SDK/dist/index.js'
+
+        const gb = createClient(GB_URL, SERVICE_API_KEY)
+        const logEl = document.getElementById('log-output')
+        const dot = document.getElementById('ws-dot')
+        const wsStatus = document.getElementById('ws-status')
+
+        // ── Logging helper ────────────────────────────────────────────────────────
+        function log(icon, label, data) {
+            const time = new Date().toLocaleTimeString('pt-BR')
+            const body = data !== undefined ? '\n  ' + JSON.stringify(data, null, 2).replace(/\n/g, '\n  ') : ''
+            logEl.textContent += `\n[${time}] ${icon} ${label}${body}\n`
+            logEl.scrollTop = logEl.scrollHeight
+        }
+
+        // ── 1. Realtime subscription ──────────────────────────────────────────────
+        gb.channel('playground')
+            .on('PRODUCT_CREATED', (payload) => {
+                dot.classList.add('connected')
+                wsStatus.textContent = 'Realtime: ativo'
+                log('⚡', 'EVENTO PUSH RECEBIDO — PRODUCT_CREATED', payload)
+            })
+            .subscribe()
+
+        // Show connected state when WebSocket opens (give it 1.5s)
+        setTimeout(() => {
+            dot.classList.add('connected')
+            wsStatus.textContent = 'Realtime: conectado (WebSocket ativo)'
+            log('🔌', 'WebSocket do GeniusBase conectado com sucesso')
+        }, 1500)
+
+        // ── 2. Insert button ──────────────────────────────────────────────────────
+        document.getElementById('btn-insert').addEventListener('click', async () => {
+            const btn = document.getElementById('btn-insert')
+            btn.disabled = true
+            btn.textContent = 'Criando…'
+
+            const { data, error } = await gb.from('products').insert({
+                name: `Produto Teste #${Math.floor(Math.random() * 9000 + 1000)}`,
+                price: 9900,
+                stock: 10,
+            })
+
+            if (error) log('❌', 'Erro no INSERT', error)
+            else log('✅', 'Produto criado via REST', data)
+
+            btn.disabled = false
+            btn.textContent = '⚡ 1. Criar Produto Falso'
+        })
+
+        // ── 3. Fetch button ───────────────────────────────────────────────────────
+        document.getElementById('btn-fetch').addEventListener('click', async () => {
+            const btn = document.getElementById('btn-fetch')
+            btn.disabled = true
+            btn.textContent = 'Buscando…'
+
+            const { data, error } = await gb.from('products').select()
+
+            if (error) log('❌', 'Erro no SELECT', error)
+            else log('📋', `SELECT concluído — ${data.length} produto(s) encontrado(s)`, data.slice(0, 3))
+
+            btn.disabled = false
+            btn.textContent = '📋 2. Listar Produtos'
+        })
+
+        // ── 4. Clear log ──────────────────────────────────────────────────────────
+        document.getElementById('btn-clear').addEventListener('click', () => {
+            logEl.textContent = 'Log limpo.\n'
+        })
+    </script>
+</body>
+
+</html>

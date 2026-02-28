@@ -1,16 +1,34 @@
 /** @jsxImportSource hono/jsx */
 
+/**
+ * Root Worker Entry Point
+ * Root/Engine/src/index.tsx
+ *
+ * Responsabilidade única: Orquestrar rotas e montar sub-roteadores.
+ * Nenhuma lógica de negócio, queries de banco ou parsing de tokens aqui.
+ */
+
 import { Hono } from 'hono'
-import { Home } from '../../Dashboard/src/pages/Home'
+import { cors } from 'hono/cors'
 import { Login } from '../../Dashboard/src/pages/Login'
 import { Register } from '../../Dashboard/src/pages/Register'
-import { authRoutes } from './api/auth/index'
-
 import { Index } from '../../Dashboard/src/pages/Index'
+import { authRoutes } from './api/auth/index'
+import { meRoute } from './api/auth/me'
+import { endUserAuthRoutes } from './api/v1/auth'
+import { customersRoute } from './api/v1/customers'
+import { productsRoute } from './api/v1/products'
+import { realtimeRoute } from './api/v1/realtime'
+import { internalDashboardRoute } from './api/internal/dashboard'
+import { apiKeysRoute } from './api/internal/apikeys'
+import { internalRealtimeRoute } from './api/internal/realtime'
 
 // CSS imports (raw text for static serving)
 import authCss from '../../Dashboard/src/styles/auth.css'
 import mainCss from '../../Dashboard/src/styles/main.css'
+
+// JS script imports (raw text for static serving)
+import rpcClientJs from '../../Dashboard/src/scripts/rpcClient.js'
 
 const app = new Hono<{ Bindings: Env }>()
 
@@ -24,40 +42,17 @@ app.get('/styles/main.css', (c) => {
     return c.text(mainCss, 200, { 'Content-Type': 'text/css' })
 })
 
+app.get('/scripts/rpcClient.js', (c) => {
+    return c.text(rpcClientJs, 200, { 'Content-Type': 'application/javascript; charset=utf-8' })
+})
+
 // ─── Landing Page ──────────────────────────────────────────
 
 app.get('/', (c) => {
     return c.html(<Index />)
 })
 
-import { getCookie } from 'hono/cookie'
-
-// ─── Dashboard Routes ──────────────────────────────────────
-
-app.get('/dashboard', async (c) => {
-    const token = getCookie(c, 'auth_token') || ''
-
-    // We must decode the token to get the tenantId.
-    // In a real scenario we'd use verifyToken here. But since this is SSR we'll just parse the payload.
-    let tenantId = ''
-    try {
-        const payloadStr = atob(token.split('.')[1])
-        tenantId = JSON.parse(payloadStr).tid
-    } catch (e) { /* ignore */ }
-
-    // Obter dados reais das tabelas para o painel BaaS
-    let users: any[] = []
-    let customers: any[] = []
-    let products: any[] = []
-
-    if (tenantId) {
-        users = (await c.env.DB.prepare('SELECT id, email, created_at FROM tenant_users WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 50').bind(tenantId).all()).results || []
-        customers = (await c.env.DB.prepare('SELECT id, name, email, created_at FROM customers WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 50').bind(tenantId).all()).results || []
-        products = (await c.env.DB.prepare('SELECT id, name, price, stock, created_at FROM products WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 50').bind(tenantId).all()).results || []
-    }
-
-    return c.html(<Home token={token} users={users} customers={customers} products={products} />)
-})
+// ─── Auth Pages (public) ───────────────────────────────────
 
 app.get('/login', (c) => {
     return c.html(<Login />)
@@ -67,20 +62,38 @@ app.get('/register', (c) => {
     return c.html(<Register />)
 })
 
-// ─── API Routes ────────────────────────────────────────────
+// ─── Dashboard (Protected SSR) ─────────────────────────────
+// adminAuth middleware is enforced inside internalDashboardRoute.
+// No JWT parsing, no atob(), no raw DB queries in this file.
 
-import { meRoute } from './api/auth/me'
-import { endUserAuthRoutes } from './api/v1/auth'
-import { customersRoute } from './api/v1/customers'
-import { productsRoute } from './api/v1/products'
+app.route('/dashboard', internalDashboardRoute)
+
+// ─── Internal Admin API (Dashboard WebSocket RPC + Auth) ──
 
 app.route('/api/auth', authRoutes)
 app.route('/api/auth/me', meRoute)
+app.route('/api/internal/apikeys', apiKeysRoute)
+app.route('/api/internal/realtime', internalRealtimeRoute)
+
+// ─── Public BaaS API (End-User / Tenant Service) ───────────
+// CORS: Tenant apps run on different origins (e.g. localhost:3000, tenant.com).
+// Scoped only to /api/v1/* — internal routes must never emit CORS headers.
+
+app.use('/api/v1/*', cors({
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Authorization', 'Content-Type'],
+    exposeHeaders: ['Content-Type'],
+    maxAge: 86400,
+}))
+
 app.route('/api/v1/auth', endUserAuthRoutes)
 app.route('/api/v1/customers', customersRoute)
 app.route('/api/v1/products', productsRoute)
+app.route('/api/v1/realtime', realtimeRoute)
 
-// HTMX Example API
+// ─── HTMX Utility Endpoint ─────────────────────────────────
+
 app.get('/api/hello', (c) => {
     return c.html(<p>Hello from GeniusBase Engine via HTMX!</p>)
 })
@@ -88,5 +101,6 @@ app.get('/api/hello', (c) => {
 // ─── Durable Object Exports ────────────────────────────────
 
 export { RealtimeState } from './objects/RealtimeState'
+export { DashboardRPCState } from './objects/DashboardRPCState'
 
 export default app

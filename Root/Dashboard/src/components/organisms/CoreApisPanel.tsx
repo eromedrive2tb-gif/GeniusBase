@@ -4,21 +4,12 @@
  * Organism: CoreApisPanel
  * Root/Dashboard/src/components/organisms/CoreApisPanel.tsx
  *
- * Responsabilidade: Renderizar puramente a aba 1 (APIs Principais) 
- * com o grid de cards dos serviços. Componente também renderiza
- * a chave de API (JWT Bearer) do Tenant com botão "Copiar".
+ * Responsabilidade: Aba "APIs Principais" — grid de cards de endpoints + gerador
+ * de Service API Key (role: service). NÃO exibe nem referencia o JWT de sessão
+ * do admin, que vive exclusivamente no Cookie HttpOnly.
  */
 
-interface CoreApisPanelProps {
-  token?: string
-}
-
-export const CoreApisPanel = ({ token }: CoreApisPanelProps) => {
-  // Obfuscate the token for display (e.g. "eyJh...••••••")
-  const displayToken = token && token.length > 20 
-    ? `${token.substring(0, 8)}...••••••` 
-    : 'Token indisponível'
-
+export const CoreApisPanel = () => {
   return (
     <div x-show="tab === 'core'" x-cloak="">
       <div class="dash-panel">
@@ -29,22 +20,33 @@ export const CoreApisPanel = ({ token }: CoreApisPanelProps) => {
           </div>
         </div>
 
-        {/* ─── API Key Card ─────────────────────────── */}
-        <div class="api-key-card" x-data={`{ copied: false, token: '${token || ''}' }`}>
+        {/* ─── Service API Key Generator ───────────────── */}
+        <div class="api-key-card api-key-card--service">
           <div class="api-key-card__header">
-            <span class="api-key-card__title">Sua Chave de API (JWT Bearer)</span>
-            <span class="badge badge--active">Secreto</span>
+            <span class="api-key-card__title">🔑 Service API Key</span>
+            <span class="badge" style="background: rgba(180,100,255,0.15); color: #b464ff; border-color: rgba(180,100,255,0.3);">
+              role: service
+            </span>
           </div>
+          <p class="api-key-card__desc" style="padding: 0 1rem 0.75rem; color: var(--gb-muted); font-size: 0.8rem; margin: 0;">
+            Gera um JWT de longa duração (365 dias) com <code>role: service</code> para usar como Bearer Token nas chamadas ao BaaS (<code>/api/v1/*</code>) a partir dos seus apps clientes. Cada clique gera uma nova chave independente.
+          </p>
           <div class="api-key-card__body">
-            <code class="api-key-card__token">{displayToken}</code>
-            <button 
+            <button
               class="btn-outline-cyan"
-              x-on:click="navigator.clipboard.writeText(token); copied = true; setTimeout(() => copied = false, 2000)"
+              hx-post="/api/internal/apikeys"
+              hx-target="#api-key-result"
+              hx-swap="innerHTML"
+              hx-indicator="#apikey-spinner"
             >
-              <span x-show="!copied">Copiar Token</span>
-              <span x-show="copied" x-cloak="">Copiado! ✓</span>
+              ⚡ Gerar Service API Key
             </button>
+            <span id="apikey-spinner" class="htmx-indicator" style="margin-left: 0.5rem; opacity: 0; transition: opacity 0.2s;">
+              Gerando...
+            </span>
           </div>
+          {/* HTMX inject target — one-time token displayed here after generation */}
+          <div id="api-key-result" style="padding: 0 1rem 1rem;"></div>
         </div>
         <br />
 

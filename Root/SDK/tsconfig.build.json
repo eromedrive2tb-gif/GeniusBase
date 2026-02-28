@@ -1,0 +1,27 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "strict": true,
+        "skipLibCheck": true,
+        "lib": [
+            "DOM",
+            "DOM.Iterable",
+            "ES2022"
+        ],
+        "declaration": true,
+        "emitDeclarationOnly": true,
+        "outDir": "./dist",
+        "declarationDir": "./dist",
+        "declarationMap": true,
+        "baseUrl": "."
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "src/types/browser.d.ts",
+        "dist"
+    ]
+}

@@ -7,12 +7,12 @@
  */
 
 import { Hono } from 'hono'
-import { tenantAuth } from '../../../middlewares/tenantAuth'
+import { apiKeyAuth } from '../../../middlewares/apiKeyAuth'
 
 const customersRoute = new Hono<{ Bindings: Env }>()
 
 // Protege todas as rotas neste app com o middleware tenantAuth
-customersRoute.use('*', tenantAuth)
+customersRoute.use('*', apiKeyAuth)
 
 // List Customers
 customersRoute.get('/', async (c) => {

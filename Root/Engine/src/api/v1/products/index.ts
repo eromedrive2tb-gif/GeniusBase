@@ -7,12 +7,12 @@
  */
 
 import { Hono } from 'hono'
-import { tenantAuth } from '../../../middlewares/tenantAuth'
+import { apiKeyAuth } from '../../../middlewares/apiKeyAuth'
 
 const productsRoute = new Hono<{ Bindings: Env }>()
 
 // Protege todas as rotas neste app com o middleware tenantAuth
-productsRoute.use('*', tenantAuth)
+productsRoute.use('*', apiKeyAuth)
 
 // List Products
 productsRoute.get('/', async (c) => {
@@ -48,7 +48,7 @@ productsRoute.post('/', async (c) => {
         await c.env.DB.prepare(
             'INSERT INTO products (id, tenant_id, name, price, stock, created_at) VALUES (?, ?, ?, ?, ?, ?)'
         )
-            .bind(id, tenantId, body.name, body.price, stock, now)
+            .bind(id, tenantId, body.name, price, stock, now)
             .run()
 
         return c.json(

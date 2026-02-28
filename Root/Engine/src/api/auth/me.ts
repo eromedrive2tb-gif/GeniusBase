@@ -7,11 +7,11 @@
  */
 
 import { Hono } from 'hono'
-import { tenantAuth } from '../../middlewares/tenantAuth'
+import { adminAuth } from '../../middlewares/adminAuth'
 
 const meRoute = new Hono<{ Bindings: Env }>()
 
-meRoute.use('*', tenantAuth)
+meRoute.use('*', adminAuth)
 
 meRoute.get('/', async (c) => {
     const userId = c.get('userId' as never) as string

@@ -46,3 +46,8 @@ bun run deploy
 
 - `bun run cf-typegen`: Generate Cloudflare environment types.
 - `bun run db:migrate`: Apply D1 migrations (local).
+
+
+## Deploy em produção
+
+⚠️ Ação manual requerida: Adiciona .dev.vars ao .gitignore e executa wrangler secret put ADMIN_JWT_SECRET + wrangler secret put ENDUSER_JWT_SECRET antes do deploy em produção.
