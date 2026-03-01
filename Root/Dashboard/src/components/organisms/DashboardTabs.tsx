@@ -18,6 +18,7 @@ interface Tab {
 const tabs: Tab[] = [
     { id: 'database', label: 'Tabelas de Dados', icon: '🗄️' },
     { id: 'auth', label: 'Usuários Finais', icon: '👥' },
+    { id: 'orders', label: 'Pedidos / Vendas', icon: '📦' },
     { id: 'core', label: 'APIs Principais', icon: '🔑' },
     { id: 'events', label: 'Eventos / Logs', icon: '⚡' },
     { id: 'docs', label: 'Documentação', icon: '📖' },

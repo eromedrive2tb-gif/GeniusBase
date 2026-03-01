@@ -16,6 +16,7 @@ import { AuthPanel } from '../components/organisms/AuthPanel'
 import { DatabasePanel } from '../components/organisms/DatabasePanel'
 import { DocsPanel } from '../components/organisms/DocsPanel'
 import { EventsPanel } from '../components/organisms/EventsPanel'
+import { OrdersPanel } from '../components/organisms/OrdersPanel'
 
 type HomeProps = {
   users: any[]
@@ -37,6 +38,7 @@ export const Home = ({ users, customers, products, events }: HomeProps) => {
       <EventsPanel events={events} />
       <GatewaysPanel />
       <DocsPanel />
+      <OrdersPanel />
     </DashboardLayout>
   )
 }

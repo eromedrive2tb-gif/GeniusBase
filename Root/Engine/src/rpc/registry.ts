@@ -226,7 +226,35 @@ const saveGateway: RpcHandler = async ({ payload, tenantId, env }) => {
     return { provider, is_active: true, updated_at: now }
 }
 
-// ─── Command Registry ──────────────────────────────────────
+// ── Orders (E-commerce) ───────────────────────────────────────
+
+const fetchOrders: RpcHandler = async ({ tenantId, env }) => {
+    const { results } = await env.DB.prepare(
+        `SELECT
+             o.id,
+             o.tenant_id,
+             o.customer_id,
+             o.status,
+             o.total_amount,
+             o.created_at,
+             o.updated_at,
+             COALESCE(t.payment_method, 'PIX')  AS payment_method,
+             COALESCE(t.provider, 'openpix')    AS provider,
+             COALESCE(t.status, 'PENDING')       AS transaction_status,
+             (
+                 SELECT COUNT(*) FROM tenant_order_items oi
+                 WHERE oi.order_id = o.id
+             ) AS item_count
+         FROM tenant_orders o
+         LEFT JOIN tenant_transactions t ON t.order_id = o.id
+         WHERE o.tenant_id = ?
+         ORDER BY o.created_at DESC
+         LIMIT 50`
+    ).bind(tenantId).all()
+    return results ?? []
+}
+
+// ── Command Registry ────────────────────────────────────────────────
 
 export const commandRegistry: Record<string, RpcHandler> = {
     PING: async () => ({ pong: true, timestamp: new Date().toISOString() }),
@@ -251,4 +279,7 @@ export const commandRegistry: Record<string, RpcHandler> = {
     // Payment Gateways (per-tenant credentials)
     FETCH_GATEWAYS: fetchGateways,
     SAVE_GATEWAY: saveGateway,
+
+    // E-commerce Orders (Phase 13+)
+    FETCH_ORDERS: fetchOrders,
 }

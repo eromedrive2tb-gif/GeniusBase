@@ -188,6 +188,107 @@
             border-radius: 6px;
             font-size: 0.8rem;
         }
+
+        /* PIX panel */
+        .pix-panel {
+            background: #0b1521;
+            border: 1px solid rgba(74, 222, 128, 0.25);
+            border-radius: 10px;
+            padding: 1.25rem;
+            display: flex;
+            gap: 1.25rem;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .pix-qr {
+            width: 140px;
+            height: 140px;
+            border-radius: 6px;
+            background: #fff;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .pix-qr img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .pix-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .pix-info__label {
+            font-size: 0.68rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .pix-info__value {
+            font-family: monospace;
+            font-size: 0.72rem;
+            color: #94a3b8;
+            word-break: break-all;
+        }
+
+        .pix-info__status {
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 0.25rem 0.6rem;
+            border-radius: 20px;
+            width: fit-content;
+        }
+
+        .pix-info__status--pending {
+            background: rgba(251, 191, 36, 0.12);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .pix-info__status--paid {
+            background: rgba(74, 222, 128, 0.12);
+            color: #4ade80;
+            border: 1px solid rgba(74, 222, 128, 0.3);
+        }
+
+        .pix-info__status--expired {
+            background: rgba(248, 113, 113, 0.12);
+            color: #f87171;
+            border: 1px solid rgba(248, 113, 113, 0.3);
+        }
+
+        .pix-info__copy {
+            font-size: 0.72rem;
+            color: #fff;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            padding: 0.25rem 0.6rem;
+            cursor: pointer;
+            width: fit-content;
+            font-weight: 600;
+        }
+
+        .pix-info__copy:hover {
+            background: #334155;
+        }
+
+        button.btn-simulate {
+            background: #7c3aed;
+            color: #fff;
+            font-size: 0.78rem;
+            padding: 0.4rem 0.85rem;
+            width: fit-content;
+        }
     </style>
 </head>
 
@@ -236,12 +337,39 @@
 
             <div class="action-card" style="border-color: rgba(74,222,128,0.2);">
                 <span class="action-card__label" style="color: #4ade80;">Pagamentos (PIX)</span>
-                <span class="action-card__title">Gerar Cobrança PIX — R$100,00</span>
+                <span class="action-card__title">Checkout com Carrinho — R$100,00</span>
                 <span class="action-card__method"
-                    style="color: #4ade80; background: rgba(74,222,128,0.08); border-color: rgba(74,222,128,0.2);">gb.payments.createCharge()</span>
-                <button id="btn-pix" style="background: #4ade80;">💳 Gerar PIX</button>
+                    style="color: #4ade80; background: rgba(74,222,128,0.08); border-color: rgba(74,222,128,0.2);">gb.orders.checkout()</span>
+                <button id="btn-pix" style="background: linear-gradient(135deg, #4ade80, #22c55e);">🛒 Checkout
+                    PIX</button>
             </div>
 
+        </div>
+
+        <!-- PIX Live Panel (shown after charge generated) -->
+        <div id="pix-panel" style="display:none;">
+            <div class="pix-panel">
+                <div class="pix-qr">
+                    <img id="pix-qr-img" src="" alt="QR Code PIX" />
+                </div>
+                <div class="pix-info">
+                    <div class="pix-info__label">Status da Cobrança</div>
+                    <div id="pix-status" class="pix-info__status pix-info__status--pending">⏳ Aguardando Pagamento</div>
+
+                    <div class="pix-info__label" style="margin-top:0.4rem;">Correlation ID</div>
+                    <div id="pix-correlation" class="pix-info__value">—</div>
+
+                    <div class="pix-info__label" style="margin-top:0.4rem;">Copia e Cola (brCode)</div>
+                    <div id="pix-brcode" class="pix-info__value"
+                        style="max-height:4rem;overflow:hidden;text-overflow:ellipsis;">—</div>
+                    <button class="pix-info__copy" id="btn-copy-brcode">📋 Copiar brCode</button>
+
+                    <div style="display:flex;gap:0.5rem;margin-top:0.75rem;flex-wrap:wrap;">
+                        <button class="btn-simulate" id="btn-simulate-webhook">🟣 Simular Webhook Pago</button>
+                        <button class="secondary" id="btn-pix-reset" style="font-size:0.72rem;">↩ Nova Cobrança</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Log output -->
@@ -264,7 +392,7 @@
         const SERVICE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyZmI5NDc1My1kZWIwLTRmNzgtODBhMy0xZmZkMjBkN2MyZTciLCJ0aWQiOiJ0X2Q0MjQzZGI2OGJlZiIsImp0aSI6ImE2N2NhYjkwLWJiOGUtNDlhMy04Mzg5LTdhNmQ1Zjk4MjFjYiIsInJvbGUiOiJzZXJ2aWNlIiwiaWF0IjoxNzcyMzQwNTYzLCJleHAiOjE4MDM4NzY1NjN9.ahXunrZFEj_Ig6jsjojYbvb1fXuF4gYeaNBE57HvBJU'
         // ────────────────────────────────────────────────────
 
-        import { createClient } from '/SDK/dist/index.js'
+        import { createClient } from '/SDK/dist/index.js?v=16'
 
         if (SERVICE_API_KEY.startsWith('COLE')) {
             document.getElementById('warn-key').style.display = 'block'
@@ -285,14 +413,7 @@
             logEl.scrollTop = logEl.scrollHeight
         }
 
-        // ── 1. Realtime — escuta Database + Eventos Igor + Pagamentos ───
-        gb.channel('playground')
-            .on('PRODUCT_CREATED', p => log('📦', 'REALTIME → PRODUCT_CREATED', p))
-            .on('CUSTOM_EVENT_RECEIVED', p => log('⚡', 'REALTIME → CUSTOM_EVENT_RECEIVED', p))
-            .on('CHARGE_COMPLETED', p => {
-                log('💳', '✅ REALTIME → CHARGE_COMPLETED — Pix confirmado!', p)
-            })
-            .subscribe()
+        // ── 1. Realtime subscription — wired after PIX panel vars (see section 5) ─
 
         setTimeout(() => {
             dot.classList.add('on')
@@ -320,7 +441,7 @@
             btnFetch.disabled = true; btnFetch.textContent = 'Buscando…'
             const { data, error } = await gb.from('products').select()
             if (error) log('❌', 'Erro em gb.from().select()', error)
-            else log('📋', `gb.from("products").select() → ${data.length} produto(s)`, data.slice(0, 2))
+            else log('📌', `gb.from("products").select() → ${Array.isArray(data) ? data.length : 0} produto(s)`, Array.isArray(data) ? data.slice(0, 2) : data)
             btnFetch.disabled = false; btnFetch.textContent = '📋 Executar'
         })
 
@@ -338,20 +459,151 @@
             btnEvent.disabled = false; btnEvent.textContent = '⚡ Disparar'
         })
 
-        // ── 5. PIX: Gerar Cobrança ───────────────────────────────
+        // ── 5. PIX: Gerar Cobrança + full flow ──────────────────
+        // ── 5. Checkout: gb.orders.checkout() + full flow ─────────────
+        let currentCorrelationId = null   // = order_id (set on successful checkout)
+        let pollingInterval = null        // webhook fallback
+        const pixPanel = document.getElementById('pix-panel')
+        const pixStatus = document.getElementById('pix-status')
+        const pixCorrelation = document.getElementById('pix-correlation')
+        const pixBrcode = document.getElementById('pix-brcode')
+        const pixQrImg = document.getElementById('pix-qr-img')
+
+        // NOTE: SDK select() now unwraps {data:[...]} automatically — data is the array directly
+        async function getFirstProductId() {
+            const { data, error } = await gb.from('products').select()
+            if (error) { log('❌', 'Erro ao buscar produtos:', error); return null }
+            if (Array.isArray(data) && data.length > 0) return data[0].id
+            return null
+        }
+
         const btnPix = document.getElementById('btn-pix')
         btnPix.addEventListener('click', async () => {
             btnPix.disabled = true; btnPix.textContent = 'Gerando…'
-            const { data, error } = await gb.payments.createCharge('openpix', 10000, { cart: '123' })
-            if (error) {
-                log('❌', 'Erro em gb.payments.createCharge()', error)
-            } else {
-                log('💳', '✅ PIX GERADO! Aguarde CHARGE_COMPLETED via WebSocket…')
-                if (data?.brCode) log('📋', 'Copia e Cola (brCode):', { brCode: data.brCode })
-                else log('⚠️', 'brCode não disponível (configure o App ID Woovi no Dashboard)', data)
+
+            const productId = await getFirstProductId()
+            if (!productId) {
+                log('⚠️', 'Nenhum produto disponível. Crie um produto primeiro (botão ⋯ Criar Produto).')
+                btnPix.disabled = false; btnPix.textContent = '🛍 Checkout PIX'
+                return
             }
-            btnPix.disabled = false; btnPix.textContent = '💳 Gerar PIX'
+
+            const { data, error } = await gb.orders.checkout({
+                items: [{ product_id: productId, quantity: 1 }],
+                provider: 'openpix',
+            })
+
+            if (error) {
+                log('❌', 'Erro em gb.orders.checkout()', error)
+                btnPix.disabled = false; btnPix.textContent = '🛍 Checkout PIX'
+                return
+            }
+
+            // order_id = correlationID (set before calling gateway)
+            currentCorrelationId = data.order_id
+            log('🛍', `✅ PEDIDO CRIADO! order_id: ${data.order_id} | total: R$ ${(data.total_amount / 100).toFixed(2)}`)
+            log('📦', 'Itens do pedido:', data.items)
+
+            pixCorrelation.textContent = data.order_id ?? '—'
+            if (data.brCode) {
+                pixBrcode.textContent = data.brCode
+                const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=' + encodeURIComponent(data.brCode)
+                pixQrImg.src = qrUrl
+                log('📋', 'brCode gerado — QR renderizado na tela')
+            } else {
+                pixBrcode.textContent = '(brCode não disponível — configure App ID Woovi)'
+                pixQrImg.src = ''
+            }
+
+            pixStatus.className = 'pix-info__status pix-info__status--pending'
+            pixStatus.textContent = '⏳ Aguardando Pagamento'
+            pixPanel.style.display = 'block'
+
+            // Start robust polling fallback in case WebSocket reconnects and misses event
+            if (pollingInterval) clearInterval(pollingInterval)
+            pollingInterval = setInterval(async () => {
+                const { data: order } = await gb.orders.getStatus(data.order_id)
+                if (order?.status === 'PAID') {
+                    log('💳', '🔄 RECOVERY POLLING → Pedido Pago confirmado!', order)
+                    if (pixPanel.style.display !== 'none') {
+                        pixStatus.className = 'pix-info__status pix-info__status--paid'
+                        pixStatus.textContent = '✅ Pedido Pago!'
+                    }
+                    clearInterval(pollingInterval)
+                }
+            }, 3000)
+
+            btnPix.disabled = false; btnPix.textContent = '🛍 Nova Cobrança'
         })
+
+        // ── Now subscribe — pixPanel is defined above ────────────────────
+        gb.channel('loja')
+            .on('PRODUCT_CREATED', p => log('📦', 'REALTIME → PRODUCT_CREATED', p))
+            .on('CUSTOM_EVENT_RECEIVED', p => log('⚡', 'REALTIME → CUSTOM_EVENT_RECEIVED', p))
+            .on('ORDER_PAID', p => {
+                log('💳', '🎉 ORDER_PAID recebido via WebSocket!', p)
+                if (pollingInterval) clearInterval(pollingInterval)
+                if (pixPanel.style.display !== 'none') {
+                    pixStatus.className = 'pix-info__status pix-info__status--paid'
+                    pixStatus.textContent = '✅ Pedido Pago!'
+                }
+            })
+            .subscribe()
+
+        // ── Copiar brCode ──────────────────────────────────────
+        document.getElementById('btn-copy-brcode').addEventListener('click', () => {
+            const code = pixBrcode.textContent
+            if (code && code !== '—') {
+                navigator.clipboard.writeText(code).then(() => {
+                    log('📋', 'brCode copiado para o clipboard!')
+                })
+            }
+        })
+
+        // ── Reset cobrança ─────────────────────────────────────
+        document.getElementById('btn-pix-reset').addEventListener('click', () => {
+            pixPanel.style.display = 'none'
+            currentCorrelationId = null
+            if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null }
+            pixQrImg.src = ''
+        })
+
+        // ── Simular Webhook (Woovi → nosso backend) ────────────
+        document.getElementById('btn-simulate-webhook').addEventListener('click', async () => {
+            if (!currentCorrelationId) {
+                log('⚠️', 'Nenhuma cobrança ativa. Gere um PIX primeiro.')
+                return
+            }
+            const btn = document.getElementById('btn-simulate-webhook')
+            btn.disabled = true; btn.textContent = 'Enviando…'
+
+            log('🟣', 'Simulando webhook POST /api/v1/payments/webhooks/openpix...')
+
+            try {
+                const webhookPayload = {
+                    event: 'OPENPIX:CHARGE_COMPLETED',
+                    charge: {
+                        correlationID: currentCorrelationId,
+                        status: 'COMPLETED',
+                        value: 10000,
+                    }
+                }
+                const res = await fetch(`${GB_URL}/api/v1/payments/webhooks/openpix`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(webhookPayload),
+                })
+                const body = await res.json()
+                log('🟣', 'Webhook enviado → ' + res.status, body)
+                if (!res.ok) log('⚠️', 'Backend não processou o webhook como esperado')
+            } catch (e) {
+                log('❌', 'Erro ao enviar webhook:', e.message)
+            } finally {
+                btn.disabled = false; btn.textContent = '🟣 Simular Webhook Pago'
+            }
+        })
+
+
 
         // ── 6. Clear log ─────────────────────────────────────────
         document.getElementById('btn-clear').addEventListener('click', () => {

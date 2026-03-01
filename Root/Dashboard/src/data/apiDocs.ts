@@ -89,14 +89,52 @@ export const baasApiDocs: ApiDocEntry[] = [
     },
     {
         method: 'POST',
-        path: '/api/v1/payments/charges',
-        description: 'Cria uma cobrança Pix via gateway agnóstica (ex: OpenPix/Woovi). Retorna o `brCode` (Pix Copia e Cola) para o cliente renderizar como QR code. Quando o pagamento é confirmado, o evento `CHARGE_COMPLETED` é disparado via WebSocket para o app cliente e para a Dashboard do admin.',
-        request: `{\n  "provider": "openpix",\n  "amount": 10000,\n  "metadata": { "pedido_id": "ORD-999" }\n}\n\n// Escute o resultado via SDK:\ngb.channel('checkout')\n  .on('CHARGE_COMPLETED', (charge) => {\n    console.log('Pix recebido!', charge)\n  })\n  .subscribe()`,
+        path: '/api/v1/orders',
+        description: 'Cria um Pedido completo com itens do carrênho e gera automaticamente uma cobrança PIX. Os preços são sempre validados no servidor (nunca confie em preços vindos do frontend). Quando o pagamento for confirmado, o evento ORDER_PAID será emitido via WebSocket.',
+        request: `{\n  "provider": "openpix",\n  "items": [\n    { "product_id": "prod_abc", "quantity": 2 }\n  ]\n}\n\n// Escute o resultado via SDK:\ngb.channel(\'loja\')\n  .on(\'ORDER_PAID\', (pedido) => {\n    console.log(\'Pedido pago!\', pedido)\n    // pedido.order_id, pedido.total_amount, pedido.items...\n  })\n  .subscribe()`,
         responses: [
-            { status: 201, label: 'Cobrança criada. Retorna id, brCode, status e provider_charge_id.', color: 'var(--gb-green)' },
-            { status: 400, label: 'Bad Request: provider inválido ou amount ausente/zero.', color: 'var(--gb-amber)' },
+            { status: 201, label: 'Pedido criado. Retorna order_id, transaction_id, brCode (QR Pix) e itens com preços congelados.', color: 'var(--gb-green)' },
+            { status: 400, label: 'Bad Request: items inválidos ou provider ausente.', color: 'var(--gb-amber)' },
             { status: 401, label: 'Unauthorized: token ausente, expirado ou sem role "service".', color: 'var(--gb-red)' },
+            { status: 422, label: 'Unprocessable: produto não encontrado ou gateway não configurada.', color: 'var(--gb-amber)' },
             { status: 502, label: 'Bad Gateway: a gateway de pagamento retornou erro.', color: 'var(--gb-red)' }
         ]
+    },
+    {
+        method: 'POST',
+        path: '/api/v1/payments/webhooks/:provider',
+        description: 'Endpoint público chamado pela Gateway (ex: Woovi/OpenPix) após confirmar um pagamento. Configure este URL no painel da sua gateway. O GeniusBase processa o evento, atualiza o pedido no banco e emite ORDER_PAID via WebSocket para o app cliente e para a Dashboard.',
+        request: `// ⚠️ Configure na Woovi/OpenPix como URL de Webhook:\nhttps://SEU_WORKER.workers.dev/api/v1/payments/webhooks/openpix\n\n// O payload enviado pela Woovi (automático):\n{\n  "event": "OPENPIX:CHARGE_COMPLETED",\n  "charge": {\n    "correlationID": "ord_abc123",\n    "status": "COMPLETED"\n  }\n}`,
+        responses: [
+            { status: 200, label: 'OK: evento processado. Pedido atualizado para PAID. ORDER_PAID broadcast enviado.', color: 'var(--gb-green)' }
+        ]
     }
+]
+
+// ── Webhook Guide (destaque visual separado na UI) ──────────────────
+export interface WebhookStep {
+    icon: string
+    title: string
+    description: string
+    code?: string
+}
+
+export const webhookGuide: WebhookStep[] = [
+    {
+        icon: '1️⃣',
+        title: 'Configure o URL de Webhook na Woovi/OpenPix',
+        description: 'No painel da Woovi vá em API/Plugins → Webhooks e cole a URL abaixo. NÃO aponte para o seu frontend — ele é Serverless e não deve processar webhooks diretamente.',
+        code: 'https://SEU_WORKER.workers.dev/api/v1/payments/webhooks/openpix',
+    },
+    {
+        icon: '2️⃣',
+        title: 'O GeniusBase recebe e processa o evento',
+        description: 'Quando a Woovi confirmar o pagamento, o GeniusBase atualiza automaticamente o Pedido (status → PAID) e a Transação no banco de dados, sem nenhuma ação manual sua.',
+    },
+    {
+        icon: '3️⃣',
+        title: 'Escute ORDER_PAID no seu frontend via SDK',
+        description: 'No seu app (React, Vue, Svelte, JS puro), use o SDK para escutar o evento em tempo real. O GeniusBase entrega o evento via WebSocket assim que o banco é atualizado.',
+        code: `gb.channel('loja')\n  .on('ORDER_PAID', (pedido) => {\n    mostrarTelaDeConfirmacao(pedido)\n    liberarAcessoAoConteudo(pedido.order_id)\n  })\n  .subscribe()`,
+    },
 ]

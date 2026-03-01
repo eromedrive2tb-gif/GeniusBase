@@ -36,7 +36,13 @@ export class QueryBuilder<T = Record<string, unknown>> {
         try {
             const res = await fetch(this.url, { method: 'GET', headers: this.headers })
             if (!res.ok) return { data: null, error: await res.text() }
-            return { data: (await res.json()) as T[], error: null }
+            const json = await res.json() as unknown
+            // Backend wraps results in { data: [...] } — unwrap to match documented interface
+            const rows = (Array.isArray(json) ? json
+                : Array.isArray((json as Record<string, unknown>)?.data)
+                    ? (json as Record<string, unknown>).data
+                    : json) as T[]
+            return { data: rows, error: null }
         } catch (err) {
             return { data: null, error: err instanceof Error ? err.message : 'Network error' }
         }

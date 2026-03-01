@@ -21,6 +21,7 @@ import { productsRoute } from './api/v1/products'
 import { realtimeRoute } from './api/v1/realtime'
 import { eventsRoute } from './api/v1/events'
 import { paymentsRoute } from './api/v1/payments'
+import { ordersRoute } from './api/v1/orders'
 import { internalDashboardRoute } from './api/internal/dashboard'
 import { apiKeysRoute } from './api/internal/apikeys'
 import { internalRealtimeRoute } from './api/internal/realtime'
@@ -94,6 +95,7 @@ app.route('/api/v1/customers', customersRoute)
 app.route('/api/v1/products', productsRoute)
 app.route('/api/v1/events', eventsRoute)
 app.route('/api/v1/payments', paymentsRoute)
+app.route('/api/v1/orders', ordersRoute)
 app.route('/api/v1/realtime', realtimeRoute)
 
 // ─── HTMX Utility Endpoint ─────────────────────────────────

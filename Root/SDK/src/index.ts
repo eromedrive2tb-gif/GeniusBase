@@ -32,16 +32,19 @@ import { DatabaseClient } from './database'
 import { RealtimeClient } from './realtime'
 import { EventsClient } from './events'
 import { PaymentsClient } from './payments'
+import { OrdersClient } from './orders'
 
 export type { AuthResponse, Session, UserRecord } from './auth'
 export type { QueryResponse } from './database'
 export type { TrackResponse, EventsResponse } from './events'
 export type { ChargeData, ChargeResult } from './payments'
+export type { OrderItem, OrderItemResult, CheckoutOptions, CheckoutResult, OrderCheckoutData } from './orders'
 export { QueryBuilder, DatabaseClient } from './database'
 export { Channel, RealtimeClient } from './realtime'
 export { AuthClient } from './auth'
 export { EventsClient } from './events'
 export { PaymentsClient } from './payments'
+export { OrdersClient } from './orders'
 
 // ─── GeniusBaseClient ──────────────────────────────────────
 
@@ -61,6 +64,9 @@ class GeniusBaseClient {
     /** Create PIX charges and handle payment events */
     readonly payments: PaymentsClient
 
+    /** Create structured orders (cart → checkout → PIX QR code) */
+    readonly orders: OrdersClient
+
     constructor(baseUrl: string, apiKey: string) {
         // Trim trailing slash for consistent URL construction
         const url = baseUrl.replace(/\/$/, '')
@@ -70,6 +76,7 @@ class GeniusBaseClient {
         this._realtime = new RealtimeClient(url, apiKey)
         this.events = new EventsClient(url, apiKey)
         this.payments = new PaymentsClient(url, apiKey)
+        this.orders = new OrdersClient(url, apiKey)
     }
 
     /**

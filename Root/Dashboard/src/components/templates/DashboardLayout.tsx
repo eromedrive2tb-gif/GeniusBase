@@ -26,8 +26,9 @@ export const DashboardLayout = ({ title, children }: DashboardLayoutProps) => {
 
                 <script src="https://unpkg.com/htmx.org@1.9.10"></script>
                 <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
+                {/* rpcClient MUST load before Alpine so window.rpc exists when x-init fires */}
+                <script src="/scripts/rpcClient.js"></script>
                 <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-                <script defer src="/scripts/rpcClient.js"></script>
 
                 {/* HTMX: Allow swapping error responses (4xx/5xx) into the DOM */}
                 <script dangerouslySetInnerHTML={{

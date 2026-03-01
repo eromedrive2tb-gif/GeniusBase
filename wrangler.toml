@@ -1,6 +1,6 @@
 name = "genius-base"
 main = "Root/Engine/src/index.tsx"
-compatibility_date = "2024-04-01"
+compatibility_date = "2024-04-05"
 
 # Environment Variables
 [vars]
