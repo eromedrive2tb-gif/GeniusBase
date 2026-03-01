@@ -31,14 +31,17 @@ import { AuthClient } from './auth'
 import { DatabaseClient } from './database'
 import { RealtimeClient } from './realtime'
 import { EventsClient } from './events'
+import { PaymentsClient } from './payments'
 
 export type { AuthResponse, Session, UserRecord } from './auth'
 export type { QueryResponse } from './database'
 export type { TrackResponse, EventsResponse } from './events'
+export type { ChargeData, ChargeResult } from './payments'
 export { QueryBuilder, DatabaseClient } from './database'
 export { Channel, RealtimeClient } from './realtime'
 export { AuthClient } from './auth'
 export { EventsClient } from './events'
+export { PaymentsClient } from './payments'
 
 // ─── GeniusBaseClient ──────────────────────────────────────
 
@@ -55,6 +58,9 @@ class GeniusBaseClient {
     /** Track custom telemetry events (Igor module) */
     readonly events: EventsClient
 
+    /** Create PIX charges and handle payment events */
+    readonly payments: PaymentsClient
+
     constructor(baseUrl: string, apiKey: string) {
         // Trim trailing slash for consistent URL construction
         const url = baseUrl.replace(/\/$/, '')
@@ -63,6 +69,7 @@ class GeniusBaseClient {
         this._db = new DatabaseClient(url, apiKey)
         this._realtime = new RealtimeClient(url, apiKey)
         this.events = new EventsClient(url, apiKey)
+        this.payments = new PaymentsClient(url, apiKey)
     }
 
     /**

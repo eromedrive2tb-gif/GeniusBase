@@ -86,5 +86,17 @@ export const baasApiDocs: ApiDocEntry[] = [
             { status: 400, label: 'Bad Request: campo "name" ausente ou body inválido.', color: 'var(--gb-amber)' },
             { status: 401, label: 'Unauthorized: token ausente ou expirado.', color: 'var(--gb-red)' }
         ]
+    },
+    {
+        method: 'POST',
+        path: '/api/v1/payments/charges',
+        description: 'Cria uma cobrança Pix via gateway agnóstica (ex: OpenPix/Woovi). Retorna o `brCode` (Pix Copia e Cola) para o cliente renderizar como QR code. Quando o pagamento é confirmado, o evento `CHARGE_COMPLETED` é disparado via WebSocket para o app cliente e para a Dashboard do admin.',
+        request: `{\n  "provider": "openpix",\n  "amount": 10000,\n  "metadata": { "pedido_id": "ORD-999" }\n}\n\n// Escute o resultado via SDK:\ngb.channel('checkout')\n  .on('CHARGE_COMPLETED', (charge) => {\n    console.log('Pix recebido!', charge)\n  })\n  .subscribe()`,
+        responses: [
+            { status: 201, label: 'Cobrança criada. Retorna id, brCode, status e provider_charge_id.', color: 'var(--gb-green)' },
+            { status: 400, label: 'Bad Request: provider inválido ou amount ausente/zero.', color: 'var(--gb-amber)' },
+            { status: 401, label: 'Unauthorized: token ausente, expirado ou sem role "service".', color: 'var(--gb-red)' },
+            { status: 502, label: 'Bad Gateway: a gateway de pagamento retornou erro.', color: 'var(--gb-red)' }
+        ]
     }
 ]

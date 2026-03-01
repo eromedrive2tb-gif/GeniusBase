@@ -160,7 +160,7 @@ const fetchEvents: RpcHandler = async ({ tenantId, env }) => {
     }))
 }
 
-// ─── Dashboard Stats ───────────────────────────────────────
+// ─── Dashboard Stats ────────────────────────────────────────────
 
 const fetchDashboardStats: RpcHandler = async ({ tenantId, env }) => {
     const [usersRes, customersRes, productsRes] = await Promise.all([
@@ -177,6 +177,53 @@ const fetchDashboardStats: RpcHandler = async ({ tenantId, env }) => {
         products: productsRes?.count ?? 0,
         fetched_at: new Date().toISOString(),
     }
+}
+
+// ─── Gateways (per-tenant payment credentials) ────────────────
+
+const fetchGateways: RpcHandler = async ({ tenantId, env }) => {
+    const { results } = await env.DB.prepare(
+        `SELECT id, provider, is_active, updated_at
+         FROM tenant_gateways WHERE tenant_id = ? ORDER BY provider`
+    ).bind(tenantId).all<{
+        id: string; provider: string; is_active: number; updated_at: number
+    }>()
+    // Never expose raw credentials — return only presence/status
+    return (results ?? []).map(row => ({
+        id: row.id,
+        provider: row.provider,
+        is_active: !!row.is_active,
+        updated_at: row.updated_at,
+        configured: true,
+    }))
+}
+
+const saveGateway: RpcHandler = async ({ payload, tenantId, env }) => {
+    const provider = (typeof payload['provider'] === 'string' ? payload['provider'] : '').trim()
+    const credentials = (typeof payload['credentials'] === 'object' ? payload['credentials'] : null)
+
+    if (!provider) throw new Error('"provider" é obrigatório.')
+    if (!credentials) throw new Error('"credentials" (objeto) é obrigatório.')
+
+    const supportedProviders = ['openpix', 'stripe']
+    if (!supportedProviders.includes(provider)) {
+        throw new Error(`Provider "${provider}" não suportado. Use: ${supportedProviders.join(', ')}`)
+    }
+
+    const id = `gw_${crypto.randomUUID().replace(/-/g, '')}`
+    const credentialsStr = JSON.stringify(credentials)
+    const now = Math.floor(Date.now() / 1000)
+
+    await env.DB.prepare(
+        `INSERT INTO tenant_gateways (id, tenant_id, provider, credentials, is_active, updated_at)
+         VALUES (?, ?, ?, ?, 1, ?)
+         ON CONFLICT(tenant_id, provider) DO UPDATE SET
+             credentials = excluded.credentials,
+             is_active   = 1,
+             updated_at  = excluded.updated_at`
+    ).bind(id, tenantId, provider, credentialsStr, now).run()
+
+    return { provider, is_active: true, updated_at: now }
 }
 
 // ─── Command Registry ──────────────────────────────────────
@@ -200,4 +247,8 @@ export const commandRegistry: Record<string, RpcHandler> = {
 
     // Igor Events
     FETCH_EVENTS: fetchEvents,
+
+    // Payment Gateways (per-tenant credentials)
+    FETCH_GATEWAYS: fetchGateways,
+    SAVE_GATEWAY: saveGateway,
 }

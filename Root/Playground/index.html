@@ -194,7 +194,7 @@
 <body>
     <header>
         <h1>🚀 GeniusBase Playground</h1>
-        <p>Vitrine oficial do SDK — Database · Auth · Realtime · Eventos Customizados</p>
+        <p>Vitrine oficial do SDK — Database · Auth · Realtime · Eventos · Pagamentos PIX</p>
     </header>
 
     <div class="container">
@@ -234,6 +234,14 @@
                 <button id="btn-event">⚡ Disparar</button>
             </div>
 
+            <div class="action-card" style="border-color: rgba(74,222,128,0.2);">
+                <span class="action-card__label" style="color: #4ade80;">Pagamentos (PIX)</span>
+                <span class="action-card__title">Gerar Cobrança PIX — R$100,00</span>
+                <span class="action-card__method"
+                    style="color: #4ade80; background: rgba(74,222,128,0.08); border-color: rgba(74,222,128,0.2);">gb.payments.createCharge()</span>
+                <button id="btn-pix" style="background: #4ade80;">💳 Gerar PIX</button>
+            </div>
+
         </div>
 
         <!-- Log output -->
@@ -253,7 +261,7 @@
         // CONFIGURAÇÃO
         // ────────────────────────────────────────────────────
         const GB_URL = 'http://localhost:8787'
-        const SERVICE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyZmI5NDc1My1kZWIwLTRmNzgtODBhMy0xZmZkMjBkN2MyZTciLCJ0aWQiOiJ0X2Q0MjQzZGI2OGJlZiIsImp0aSI6ImRmM2I2ZDNiLTJhMjItNDY0NS04Mzk4LWU3MDA0NzJlNzQxMCIsInJvbGUiOiJzZXJ2aWNlIiwiaWF0IjoxNzcyMzMwMzY0LCJleHAiOjE4MDM4NjYzNjR9.g2RzYgNcwdlkpB7CPORVJsN6uh1y5AlyZeqxYxFl0hA'
+        const SERVICE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyZmI5NDc1My1kZWIwLTRmNzgtODBhMy0xZmZkMjBkN2MyZTciLCJ0aWQiOiJ0X2Q0MjQzZGI2OGJlZiIsImp0aSI6ImE2N2NhYjkwLWJiOGUtNDlhMy04Mzg5LTdhNmQ1Zjk4MjFjYiIsInJvbGUiOiJzZXJ2aWNlIiwiaWF0IjoxNzcyMzQwNTYzLCJleHAiOjE4MDM4NzY1NjN9.ahXunrZFEj_Ig6jsjojYbvb1fXuF4gYeaNBE57HvBJU'
         // ────────────────────────────────────────────────────
 
         import { createClient } from '/SDK/dist/index.js'
@@ -277,10 +285,13 @@
             logEl.scrollTop = logEl.scrollHeight
         }
 
-        // ── 1. Realtime — escuta Database + Eventos Igor ─────
+        // ── 1. Realtime — escuta Database + Eventos Igor + Pagamentos ───
         gb.channel('playground')
             .on('PRODUCT_CREATED', p => log('📦', 'REALTIME → PRODUCT_CREATED', p))
             .on('CUSTOM_EVENT_RECEIVED', p => log('⚡', 'REALTIME → CUSTOM_EVENT_RECEIVED', p))
+            .on('CHARGE_COMPLETED', p => {
+                log('💳', '✅ REALTIME → CHARGE_COMPLETED — Pix confirmado!', p)
+            })
             .subscribe()
 
         setTimeout(() => {
@@ -327,7 +338,22 @@
             btnEvent.disabled = false; btnEvent.textContent = '⚡ Disparar'
         })
 
-        // ── 5. Clear log ─────────────────────────────────────
+        // ── 5. PIX: Gerar Cobrança ───────────────────────────────
+        const btnPix = document.getElementById('btn-pix')
+        btnPix.addEventListener('click', async () => {
+            btnPix.disabled = true; btnPix.textContent = 'Gerando…'
+            const { data, error } = await gb.payments.createCharge('openpix', 10000, { cart: '123' })
+            if (error) {
+                log('❌', 'Erro em gb.payments.createCharge()', error)
+            } else {
+                log('💳', '✅ PIX GERADO! Aguarde CHARGE_COMPLETED via WebSocket…')
+                if (data?.brCode) log('📋', 'Copia e Cola (brCode):', { brCode: data.brCode })
+                else log('⚠️', 'brCode não disponível (configure o App ID Woovi no Dashboard)', data)
+            }
+            btnPix.disabled = false; btnPix.textContent = '💳 Gerar PIX'
+        })
+
+        // ── 6. Clear log ─────────────────────────────────────────
         document.getElementById('btn-clear').addEventListener('click', () => {
             logEl.textContent = 'Log limpo.\n'
         })

@@ -144,6 +144,27 @@ Authorization: Bearer <SUA_SERVICE_KEY>
               <span class="badge--dot"></span> Ativo
             </span>
           </div>
+
+          {/* Payments / PIX Card */}
+          <div class="neon-card">
+            <div class="neon-card__header">
+              <span class="neon-card__title">Pagamentos (PIX)</span>
+              <span class="neon-card__icon">💳</span>
+            </div>
+            <div class="neon-card__endpoint">POST /api/v1/payments/charges</div>
+            <div class="neon-card__endpoint">POST /api/v1/payments/webhooks/:provider</div>
+            <p class="neon-card__desc">
+              Crie cobranças Pix via gateway agnóstica (OpenPix/Woovi). Retorna o <code>brCode</code> (Copia e Cola).
+              Quando confirmado, o evento <code>CHARGE_COMPLETED</code> é disparado via WebSocket para o app e o Dashboard.
+            </p>
+            <pre style="background:#0f172a; border:1px solid #1e293b; border-radius:4px; padding:0.6rem 0.75rem; font-size:0.72rem; color:#94a3b8; margin:0.5rem 0; overflow-x:auto;">{`POST /api/v1/payments/charges
+Authorization: Bearer <SERVICE_KEY>
+
+{ "provider": "openpix", "amount": 10000 }`}</pre>
+            <span class="badge badge--active">
+              <span class="badge--dot"></span> Ativo
+            </span>
+          </div>
         </div>
       </div>
     </div>
