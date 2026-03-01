@@ -147,6 +147,19 @@ const createProduct: RpcHandler = async ({ payload, tenantId, env, broadcast }) 
     return record
 }
 
+// ─── Events (Igor Telemetry) ──────────────────────────────
+
+const fetchEvents: RpcHandler = async ({ tenantId, env }) => {
+    const { results } = await env.DB.prepare(
+        'SELECT id, name, payload, created_at FROM tenant_events WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 50'
+    ).bind(tenantId).all<{ id: string; name: string; payload: string | null; created_at: number }>()
+    // Deserialize payload TEXT → object for each row
+    return results.map(row => ({
+        ...row,
+        payload: (() => { try { return JSON.parse(row.payload ?? 'null') } catch { return null } })()
+    }))
+}
+
 // ─── Dashboard Stats ───────────────────────────────────────
 
 const fetchDashboardStats: RpcHandler = async ({ tenantId, env }) => {
@@ -184,4 +197,7 @@ export const commandRegistry: Record<string, RpcHandler> = {
     // Products
     FETCH_PRODUCTS: fetchProducts,
     CREATE_PRODUCT: createProduct,
+
+    // Igor Events
+    FETCH_EVENTS: fetchEvents,
 }

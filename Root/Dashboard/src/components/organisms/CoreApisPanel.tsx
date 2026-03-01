@@ -98,6 +98,52 @@ export const CoreApisPanel = () => {
               <span class="badge--dot"></span> Ativo
             </span>
           </div>
+
+          {/* Realtime Card */}
+          <div class="neon-card">
+            <div class="neon-card__header">
+              <span class="neon-card__title">Realtime (WebSocket Público)</span>
+              <span class="neon-card__icon">📡</span>
+            </div>
+            <div class="neon-card__endpoint">GET /api/v1/realtime</div>
+            <p class="neon-card__desc">
+              Túnel de eventos públicos via WebSocket. Conecte-se passando a Service API Key como query param.
+              Receba broadcasts em tempo real do BaaS direto no cliente.
+            </p>
+            <pre style="background:#0f172a; border:1px solid #1e293b; border-radius:4px; padding:0.6rem 0.75rem; font-size:0.72rem; color:#94a3b8; margin:0.5rem 0; overflow-x:auto;">{`// SDK
+gb.channel('meu-canal')
+  .on('PRODUCT_CREATED', handler)
+  .subscribe()
+
+// WebSocket nativo
+new WebSocket('wss://url/api/v1/realtime?token=<KEY>')`}</pre>
+            <span class="badge badge--active">
+              <span class="badge--dot"></span> Ativo
+            </span>
+          </div>
+
+          {/* Events / Igor Card */}
+          <div class="neon-card">
+            <div class="neon-card__header">
+              <span class="neon-card__title">Eventos Customizados (Telemetria)</span>
+              <span class="neon-card__icon">⚡</span>
+            </div>
+            <div class="neon-card__endpoint">POST /api/v1/events</div>
+            <p class="neon-card__desc">
+              Dispare eventos arbitrários do seu app (ex: <code>"Compra PIX"</code>, <code>"Botão Clicado"</code>).
+              O GeniusBase persiste no D1, registra no log e notifica o Dashboard em <strong>tempo real</strong> via WebSocket.
+            </p>
+            <pre style="background:#0f172a; border:1px solid #1e293b; border-radius:4px; padding:0.6rem 0.75rem; font-size:0.72rem; color:#94a3b8; margin:0.5rem 0; overflow-x:auto;">{`POST /api/v1/events
+Authorization: Bearer <SUA_SERVICE_KEY>
+
+{
+  "name": "Compra PIX",
+  "payload": { "valor": 150.00, "metodo": "pix" }
+}`}</pre>
+            <span class="badge badge--active">
+              <span class="badge--dot"></span> Ativo
+            </span>
+          </div>
         </div>
       </div>
     </div>

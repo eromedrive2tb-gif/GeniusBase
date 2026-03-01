@@ -15,14 +15,16 @@ import { GatewaysPanel } from '../components/organisms/GatewaysPanel'
 import { AuthPanel } from '../components/organisms/AuthPanel'
 import { DatabasePanel } from '../components/organisms/DatabasePanel'
 import { DocsPanel } from '../components/organisms/DocsPanel'
+import { EventsPanel } from '../components/organisms/EventsPanel'
 
 type HomeProps = {
   users: any[]
   customers: any[]
   products: any[]
+  events: any[]
 }
 
-export const Home = ({ users, customers, products }: HomeProps) => {
+export const Home = ({ users, customers, products, events }: HomeProps) => {
   return (
     <DashboardLayout title="Painel — GeniusBase">
       {/* ─── Tabs ─────────────────────────────────── */}
@@ -32,6 +34,7 @@ export const Home = ({ users, customers, products }: HomeProps) => {
       <CoreApisPanel />
       <AuthPanel users={users} />
       <DatabasePanel customers={customers} products={products} />
+      <EventsPanel events={events} />
       <GatewaysPanel />
       <DocsPanel />
     </DashboardLayout>

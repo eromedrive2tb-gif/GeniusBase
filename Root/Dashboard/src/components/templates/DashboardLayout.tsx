@@ -65,6 +65,55 @@ export const DashboardLayout = ({ title, children }: DashboardLayoutProps) => {
                     {/* Children content (Tabs + Panels) */}
                     {children}
                 </div>
+
+                {/* ─── Toast Notifications ────────────────── */}
+                {/* Listens to rpc_push CustomEvent from rpcClient.js */}
+                <div
+                    style="position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999; display:flex; flex-direction:column; gap:0.5rem; pointer-events:none;"
+                    {...{
+                        'x-data': 'toastManager()',
+                        '@rpc_push.window': 'handlePush($event.detail)',
+                    }}
+                >
+                    <template {...{ 'x-for': 't in toasts', ':key': 't.id' }}>
+                        <div
+                            style="background:#1e293b; border:1px solid rgba(6,182,212,0.4); border-left:3px solid #06b6d4; border-radius:6px; padding:0.75rem 1rem; min-width:260px; max-width:340px; box-shadow:0 4px 20px rgba(0,0,0,0.4); pointer-events:auto; animation: fadeSlideIn 0.2s ease;"
+                            {...{ 'x-show': 't.visible', 'x-transition': '' }}
+                        >
+                            <div style="font-size:0.72rem; color:var(--gb-cyan); font-weight:600; margin-bottom:0.2rem;" {...{ 'x-text': 't.label' }}></div>
+                            <div style="font-size:0.8rem; color:#e2e8f0;" {...{ 'x-text': 't.body' }}></div>
+                        </div>
+                    </template>
+                </div>
+
+                <script dangerouslySetInnerHTML={{
+                    __html: `
+                    function toastManager() {
+                        return {
+                            toasts: [],
+                            handlePush({ event, payload }) {
+                                if (event !== 'CUSTOM_EVENT_RECEIVED') return;
+                                const id = Date.now();
+                                const name = payload?.name ?? 'Evento';
+                                const keys = Object.keys(payload?.payload ?? {}).slice(0, 2).join(', ');
+                                this.toasts.unshift({
+                                    id,
+                                    label: '⚡ Novo Evento Recebido',
+                                    body: name + (keys ? ' · ' + keys : ''),
+                                    visible: true,
+                                });
+                                // Cap at 5 visible toasts
+                                if (this.toasts.length > 5) this.toasts.pop();
+                                // Auto-dismiss after 4 seconds
+                                setTimeout(() => {
+                                    const t = this.toasts.find(t => t.id === id);
+                                    if (t) t.visible = false;
+                                    setTimeout(() => { this.toasts = this.toasts.filter(t => t.id !== id); }, 300);
+                                }, 4000);
+                            },
+                        };
+                    }
+                `}}></script>
             </body>
         </html>
     )

@@ -21,8 +21,8 @@ internalDashboardRoute.use('*', adminAuth)
 internalDashboardRoute.get('/', async (c) => {
     const tenantId = c.get('tenantId' as never) as string
 
-    // Busca paralela dos 3 datasets — sem bloquear a thread além do necessário
-    const [usersResult, customersResult, productsResult] = await Promise.all([
+    // Busca paralela dos datasets — sem bloquear a thread além do necessário
+    const [usersResult, customersResult, productsResult, eventsResult] = await Promise.all([
         c.env.DB.prepare(
             'SELECT id, email, created_at FROM tenant_users WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 50'
         )
@@ -40,13 +40,26 @@ internalDashboardRoute.get('/', async (c) => {
         )
             .bind(tenantId)
             .all(),
+
+        c.env.DB.prepare(
+            'SELECT id, name, payload, created_at FROM tenant_events WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 50'
+        )
+            .bind(tenantId)
+            .all<{ id: string; name: string; payload: string | null; created_at: number }>(),
     ])
+
+    // Deserialize events payload TEXT → object for SSR hydration
+    const events = (eventsResult.results ?? []).map(row => ({
+        ...row,
+        payload: (() => { try { return JSON.parse(row.payload ?? 'null') } catch { return null } })(),
+    }))
 
     return c.html(
         <Home
             users={usersResult.results ?? []}
             customers={customersResult.results ?? []}
             products={productsResult.results ?? []}
+            events={events}
         />
     )
 })

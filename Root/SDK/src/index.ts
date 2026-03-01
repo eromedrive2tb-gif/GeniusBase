@@ -30,12 +30,15 @@
 import { AuthClient } from './auth'
 import { DatabaseClient } from './database'
 import { RealtimeClient } from './realtime'
+import { EventsClient } from './events'
 
 export type { AuthResponse, Session, UserRecord } from './auth'
 export type { QueryResponse } from './database'
+export type { TrackResponse, EventsResponse } from './events'
 export { QueryBuilder, DatabaseClient } from './database'
 export { Channel, RealtimeClient } from './realtime'
 export { AuthClient } from './auth'
+export { EventsClient } from './events'
 
 // ─── GeniusBaseClient ──────────────────────────────────────
 
@@ -49,6 +52,9 @@ class GeniusBaseClient {
     /** Subscribe to real-time events from your BaaS */
     private readonly _realtime: RealtimeClient
 
+    /** Track custom telemetry events (Igor module) */
+    readonly events: EventsClient
+
     constructor(baseUrl: string, apiKey: string) {
         // Trim trailing slash for consistent URL construction
         const url = baseUrl.replace(/\/$/, '')
@@ -56,6 +62,7 @@ class GeniusBaseClient {
         this.auth = new AuthClient(url, apiKey)
         this._db = new DatabaseClient(url, apiKey)
         this._realtime = new RealtimeClient(url, apiKey)
+        this.events = new EventsClient(url, apiKey)
     }
 
     /**

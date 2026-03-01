@@ -4,49 +4,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>App do Cliente - Powered by GeniusBase</title>
+    <title>GeniusBase Playground — SDK Demo</title>
     <style>
         *,
         *::before,
         *::after {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
             font-family: system-ui, sans-serif;
-            background: #111;
-            color: #eee;
+            background: #0a0a0f;
+            color: #e2e8f0;
+            min-height: 100vh;
             padding: 2rem;
-            max-width: 800px;
-            margin: 0 auto;
         }
 
-        h1 {
+        header {
+            max-width: 860px;
+            margin: 0 auto 2rem;
+            border-bottom: 1px solid #1e293b;
+            padding-bottom: 1.25rem;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
             color: #06b6d4;
-            margin-bottom: 0.25rem;
+            letter-spacing: -0.5px;
         }
 
-        p {
-            color: #888;
-            margin-top: 0;
+        header p {
+            color: #64748b;
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
         }
 
-        .actions {
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
             display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        /* Status bar */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.78rem;
+            color: #64748b;
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #f87171;
+            flex-shrink: 0;
+            transition: background 0.4s;
+        }
+
+        .dot.on {
+            background: #4ade80;
+            box-shadow: 0 0 6px #4ade8066;
+        }
+
+        .dot.warn {
+            background: #fbbf24;
+        }
+
+        /* Action grid */
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 0.75rem;
-            margin: 1.5rem 0;
-            flex-wrap: wrap;
+        }
+
+        .action-card {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .action-card__label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #475569;
+        }
+
+        .action-card__title {
+            font-size: 0.88rem;
+            color: #cbd5e1;
+            font-weight: 500;
+        }
+
+        .action-card__method {
+            font-family: monospace;
+            font-size: 0.72rem;
+            color: #06b6d4;
+            background: rgba(6, 182, 212, 0.08);
+            padding: 0.15rem 0.4rem;
+            border-radius: 3px;
+            border: 1px solid rgba(6, 182, 212, 0.2);
+            display: inline-block;
+            width: fit-content;
         }
 
         button {
-            padding: 8px 18px;
+            padding: 0.45rem 0.9rem;
             background: #06b6d4;
             color: #000;
             border: none;
-            cursor: pointer;
-            font-weight: bold;
             border-radius: 4px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            cursor: pointer;
             transition: opacity 0.15s;
+            width: fit-content;
         }
 
         button:hover {
@@ -54,158 +141,193 @@
         }
 
         button:disabled {
-            opacity: 0.4;
+            opacity: 0.35;
             cursor: not-allowed;
         }
 
-        .status-bar {
+        button.secondary {
+            background: #1e293b;
+            color: #94a3b8;
+        }
+
+        /* Log */
+        .log-header {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            font-size: 0.8rem;
-            margin-bottom: 1rem;
-            color: #888;
-        }
-
-        .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #f87171;
-            transition: background 0.3s;
-        }
-
-        .dot.connected {
-            background: #4ade80;
-        }
-
-        h3 {
-            color: #06b6d4;
+            justify-content: space-between;
             margin-bottom: 0.5rem;
         }
 
-        pre {
-            background: #1a1a1a;
-            padding: 1rem;
-            border-left: 3px solid #06b6d4;
-            overflow-x: auto;
-            font-size: 0.82rem;
-            line-height: 1.6;
-            min-height: 120px;
-            border-radius: 0 4px 4px 0;
-            white-space: pre-wrap;
-            word-break: break-all;
+        .log-header h2 {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            font-weight: 600;
         }
 
-        .warn {
-            background: rgba(251, 191, 36, 0.1);
-            border: 1px solid rgba(251, 191, 36, 0.4);
+        #log {
+            background: #080c14;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.75rem;
+            line-height: 1.7;
+            min-height: 220px;
+            max-height: 420px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: #64748b;
+        }
+
+        .warn-banner {
+            background: rgba(251, 191, 36, 0.07);
+            border: 1px solid rgba(251, 191, 36, 0.3);
             color: #fbbf24;
-            padding: 0.75rem 1rem;
-            border-radius: 4px;
-            font-size: 0.85rem;
-            margin-bottom: 1.5rem;
+            padding: 0.6rem 0.9rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
         }
     </style>
 </head>
 
 <body>
-    <h1>🚀 Meu App Serverless</h1>
-    <p>Testando a integração com o BaaS GeniusBase via SDK</p>
+    <header>
+        <h1>🚀 GeniusBase Playground</h1>
+        <p>Vitrine oficial do SDK — Database · Auth · Realtime · Eventos Customizados</p>
+    </header>
 
-    <div class="warn">
-        ⚠️ Substitua <code>SERVICE_API_KEY</code> abaixo pela chave gerada no Dashboard antes de testar.
+    <div class="container">
+
+        <!-- Config warning -->
+        <div class="warn-banner" id="warn-key" style="display:none;">
+            ⚠️ <strong>SERVICE_API_KEY</strong> não configurada. Edite a constante no topo do script antes de testar.
+        </div>
+
+        <!-- WebSocket status -->
+        <div class="status-bar">
+            <div class="dot" id="ws-dot"></div>
+            <span id="ws-label">Iniciando canal Realtime…</span>
+        </div>
+
+        <!-- Action cards -->
+        <div class="action-grid">
+
+            <div class="action-card">
+                <span class="action-card__label">Database</span>
+                <span class="action-card__title">Criar Produto Falso</span>
+                <span class="action-card__method">gb.from('products').insert()</span>
+                <button id="btn-insert">⚡ Executar</button>
+            </div>
+
+            <div class="action-card">
+                <span class="action-card__label">Database</span>
+                <span class="action-card__title">Listar Produtos</span>
+                <span class="action-card__method">gb.from('products').select()</span>
+                <button id="btn-fetch">📋 Executar</button>
+            </div>
+
+            <div class="action-card">
+                <span class="action-card__label">Telemetria (Igor)</span>
+                <span class="action-card__title">Disparar Evento Customizado</span>
+                <span class="action-card__method">gb.events.track()</span>
+                <button id="btn-event">⚡ Disparar</button>
+            </div>
+
+        </div>
+
+        <!-- Log output -->
+        <div>
+            <div class="log-header">
+                <h2>📡 Live Log</h2>
+                <button class="secondary" id="btn-clear" style="font-size:0.72rem; padding:0.3rem 0.6rem;">🗑
+                    Limpar</button>
+            </div>
+            <pre id="log">Aguardando ações…</pre>
+        </div>
+
     </div>
-
-    <div class="status-bar">
-        <div class="dot" id="ws-dot"></div>
-        <span id="ws-status">Conectando ao Realtime…</span>
-    </div>
-
-    <div class="actions">
-        <button id="btn-insert">⚡ 1. Criar Produto Falso</button>
-        <button id="btn-fetch">📋 2. Listar Produtos</button>
-        <button id="btn-clear" style="background:#374151; color:#eee;">🗑 Limpar Log</button>
-    </div>
-
-    <h3>Logs ao Vivo</h3>
-    <pre id="log-output">Aguardando ações…</pre>
 
     <script type="module">
-        // ──────────────────────────────────────────────────────────────────────────
-        // CONFIGURAÇÃO — edite aqui antes de testar
-        // ──────────────────────────────────────────────────────────────────────────
+        // ────────────────────────────────────────────────────
+        // CONFIGURAÇÃO
+        // ────────────────────────────────────────────────────
         const GB_URL = 'http://localhost:8787'
-        const SERVICE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyZmI5NDc1My1kZWIwLTRmNzgtODBhMy0xZmZkMjBkN2MyZTciLCJ0aWQiOiJ0X2Q0MjQzZGI2OGJlZiIsImp0aSI6IjdmZjljODE5LTQwN2ItNDIyOC1hODgyLWExMjE0YmI1Nzc4YSIsInJvbGUiOiJzZXJ2aWNlIiwiaWF0IjoxNzcyMzA2MzE5LCJleHAiOjE4MDM4NDIzMTl9.dN9PVBBNAjSFIgFDlrJBTB7_kAHIDKSq9d5_iAHlRFw'
-        // ──────────────────────────────────────────────────────────────────────────
+        const SERVICE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyZmI5NDc1My1kZWIwLTRmNzgtODBhMy0xZmZkMjBkN2MyZTciLCJ0aWQiOiJ0X2Q0MjQzZGI2OGJlZiIsImp0aSI6ImRmM2I2ZDNiLTJhMjItNDY0NS04Mzk4LWU3MDA0NzJlNzQxMCIsInJvbGUiOiJzZXJ2aWNlIiwiaWF0IjoxNzcyMzMwMzY0LCJleHAiOjE4MDM4NjYzNjR9.g2RzYgNcwdlkpB7CPORVJsN6uh1y5AlyZeqxYxFl0hA'
+        // ────────────────────────────────────────────────────
 
-        // Importa o SDK compilado diretamente (ESM)
         import { createClient } from '/SDK/dist/index.js'
 
-        const gb = createClient(GB_URL, SERVICE_API_KEY)
-        const logEl = document.getElementById('log-output')
-        const dot = document.getElementById('ws-dot')
-        const wsStatus = document.getElementById('ws-status')
+        if (SERVICE_API_KEY.startsWith('COLE')) {
+            document.getElementById('warn-key').style.display = 'block'
+        }
 
-        // ── Logging helper ────────────────────────────────────────────────────────
-        function log(icon, label, data) {
+        const gb = createClient(GB_URL, SERVICE_API_KEY)
+        const logEl = document.getElementById('log')
+        const dot = document.getElementById('ws-dot')
+        const label = document.getElementById('ws-label')
+
+        // ── Logging helper ───────────────────────────────────
+        function log(icon, msg, data) {
             const time = new Date().toLocaleTimeString('pt-BR')
-            const body = data !== undefined ? '\n  ' + JSON.stringify(data, null, 2).replace(/\n/g, '\n  ') : ''
-            logEl.textContent += `\n[${time}] ${icon} ${label}${body}\n`
+            const body = data !== undefined
+                ? '\n    ' + JSON.stringify(data, null, 2).replace(/\n/g, '\n    ')
+                : ''
+            logEl.textContent += `\n[${time}] ${icon} ${msg}${body}\n`
             logEl.scrollTop = logEl.scrollHeight
         }
 
-        // ── 1. Realtime subscription ──────────────────────────────────────────────
+        // ── 1. Realtime — escuta Database + Eventos Igor ─────
         gb.channel('playground')
-            .on('PRODUCT_CREATED', (payload) => {
-                dot.classList.add('connected')
-                wsStatus.textContent = 'Realtime: ativo'
-                log('⚡', 'EVENTO PUSH RECEBIDO — PRODUCT_CREATED', payload)
-            })
+            .on('PRODUCT_CREATED', p => log('📦', 'REALTIME → PRODUCT_CREATED', p))
+            .on('CUSTOM_EVENT_RECEIVED', p => log('⚡', 'REALTIME → CUSTOM_EVENT_RECEIVED', p))
             .subscribe()
 
-        // Show connected state when WebSocket opens (give it 1.5s)
         setTimeout(() => {
-            dot.classList.add('connected')
-            wsStatus.textContent = 'Realtime: conectado (WebSocket ativo)'
-            log('🔌', 'WebSocket do GeniusBase conectado com sucesso')
-        }, 1500)
+            dot.classList.add('on')
+            label.textContent = 'Realtime conectado (WebSocket ativo)'
+            log('🔌', 'WebSocket do GeniusBase estabelecido com sucesso')
+        }, 1200)
 
-        // ── 2. Insert button ──────────────────────────────────────────────────────
-        document.getElementById('btn-insert').addEventListener('click', async () => {
-            const btn = document.getElementById('btn-insert')
-            btn.disabled = true
-            btn.textContent = 'Criando…'
-
+        // ── 2. Criar produto ─────────────────────────────────
+        const btnInsert = document.getElementById('btn-insert')
+        btnInsert.addEventListener('click', async () => {
+            btnInsert.disabled = true; btnInsert.textContent = 'Criando…'
             const { data, error } = await gb.from('products').insert({
-                name: `Produto Teste #${Math.floor(Math.random() * 9000 + 1000)}`,
+                name: `Produto Playground #${Math.floor(Math.random() * 9000 + 1000)}`,
                 price: 9900,
                 stock: 10,
             })
-
-            if (error) log('❌', 'Erro no INSERT', error)
-            else log('✅', 'Produto criado via REST', data)
-
-            btn.disabled = false
-            btn.textContent = '⚡ 1. Criar Produto Falso'
+            if (error) log('❌', 'Erro em gb.from().insert()', error)
+            else log('✅', 'gb.from("products").insert() → OK', data)
+            btnInsert.disabled = false; btnInsert.textContent = '⚡ Executar'
         })
 
-        // ── 3. Fetch button ───────────────────────────────────────────────────────
-        document.getElementById('btn-fetch').addEventListener('click', async () => {
-            const btn = document.getElementById('btn-fetch')
-            btn.disabled = true
-            btn.textContent = 'Buscando…'
-
+        // ── 3. Listar produtos ───────────────────────────────
+        const btnFetch = document.getElementById('btn-fetch')
+        btnFetch.addEventListener('click', async () => {
+            btnFetch.disabled = true; btnFetch.textContent = 'Buscando…'
             const { data, error } = await gb.from('products').select()
-
-            if (error) log('❌', 'Erro no SELECT', error)
-            else log('📋', `SELECT concluído — ${data.length} produto(s) encontrado(s)`, data.slice(0, 3))
-
-            btn.disabled = false
-            btn.textContent = '📋 2. Listar Produtos'
+            if (error) log('❌', 'Erro em gb.from().select()', error)
+            else log('📋', `gb.from("products").select() → ${data.length} produto(s)`, data.slice(0, 2))
+            btnFetch.disabled = false; btnFetch.textContent = '📋 Executar'
         })
 
-        // ── 4. Clear log ──────────────────────────────────────────────────────────
+        // ── 4. Evento customizado (Igor) ─────────────────────
+        const btnEvent = document.getElementById('btn-event')
+        btnEvent.addEventListener('click', async () => {
+            btnEvent.disabled = true; btnEvent.textContent = 'Disparando…'
+            const { data, error } = await gb.events.track('Nova Compra PIX', {
+                valor: 150.00,
+                metodo: 'pix',
+                usuario: 'playground@teste.com',
+            })
+            if (error) log('❌', 'Erro em gb.events.track()', error)
+            else log('⚡', 'gb.events.track() → OK (verifique o Dashboard!)', data)
+            btnEvent.disabled = false; btnEvent.textContent = '⚡ Disparar'
+        })
+
+        // ── 5. Clear log ─────────────────────────────────────
         document.getElementById('btn-clear').addEventListener('click', () => {
             logEl.textContent = 'Log limpo.\n'
         })
