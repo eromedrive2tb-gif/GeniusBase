@@ -7,15 +7,16 @@
  */
 
 import { Hono } from 'hono'
+import { createAuthRouter } from '../../utils/router'
 import { adminAuth } from '../../middlewares/adminAuth'
 
-const meRoute = new Hono<{ Bindings: Env }>()
+const meRoute = createAuthRouter()
 
 meRoute.use('*', adminAuth)
 
 meRoute.get('/', async (c) => {
-    const userId = c.get('userId' as never) as string
-    const tenantId = c.get('tenantId' as never) as string
+    const userId = c.get('userId') as string
+    const tenantId = c.get('tenantId') as string
 
     // Busca o usuário logado
     const user = await c.env.DB.prepare(

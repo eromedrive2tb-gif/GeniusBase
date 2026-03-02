@@ -145,26 +145,41 @@ Authorization: Bearer <SUA_SERVICE_KEY>
             </span>
           </div>
 
-          {/* Payments / PIX Card */}
+          {/* Transactions (Standalone) Card */}
           <div class="neon-card">
             <div class="neon-card__header">
-              <span class="neon-card__title">Pagamentos (PIX)</span>
-              <span class="neon-card__icon">💳</span>
+              <span class="neon-card__title">PIX Avulso / Doações</span>
+              <span class="neon-card__icon">💸</span>
             </div>
-            <div class="neon-card__endpoint">POST /api/v1/payments/charges</div>
-            <div class="neon-card__endpoint">POST /api/v1/payments/webhooks/:provider</div>
+            <div class="neon-card__endpoint">POST /api/v1/transactions</div>
             <p class="neon-card__desc">
-              Crie cobranças Pix via gateway agnóstica (OpenPix/Woovi). Retorna o <code>brCode</code> (Copia e Cola).
-              Quando confirmado, o evento <code>CHARGE_COMPLETED</code> é disparado via WebSocket para o app e o Dashboard.
+              Crie cobranças diretas e doações (Standalone PIX) sem precisar criar um Pedido (Carrinho). O Gateway processa o QR Code instantaneamente.
             </p>
-            <pre style="background:#0f172a; border:1px solid #1e293b; border-radius:4px; padding:0.6rem 0.75rem; font-size:0.72rem; color:#94a3b8; margin:0.5rem 0; overflow-x:auto;">{`POST /api/v1/payments/charges
-Authorization: Bearer <SERVICE_KEY>
-
-{ "provider": "openpix", "amount": 10000 }`}</pre>
             <span class="badge badge--active">
-              <span class="badge--dot"></span> Ativo
+              <span class="badge--dot"></span> Ativo (Fase 15)
             </span>
           </div>
+        </div>
+
+        {/* Payments / PIX Card */}
+        <div class="neon-card">
+          <div class="neon-card__header">
+            <span class="neon-card__title">Pagamentos (E-commerce e Avulso)</span>
+            <span class="neon-card__icon">💳</span>
+          </div>
+          <div class="neon-card__endpoint">POST /api/v1/orders</div>
+          <div class="neon-card__endpoint">POST /api/v1/transactions</div>
+          <p class="neon-card__desc">
+            Crie Pedidos completos (com carrênho e validação de preços) ou Transações Avulsas (doações/cobranças diretas).
+            A Gateway envia o webhook de confirmação para o BaaS, que dispara <code>ORDER_PAID</code> ou <code>TRANSACTION_COMPLETED</code>.
+          </p>
+          <pre style="background:#0f172a; border:1px solid #1e293b; border-radius:4px; padding:0.6rem 0.75rem; font-size:0.72rem; color:#94a3b8; margin:0.5rem 0; overflow-x:auto;">{`POST /api/v1/orders
+Authorization: Bearer <SERVICE_KEY>
+
+{ "provider": "openpix", "items": [{ "product_id": "prod_123", "quantity": 1 }] }`}</pre>
+          <span class="badge badge--active">
+            <span class="badge--dot"></span> Ativo
+          </span>
         </div>
       </div>
     </div>

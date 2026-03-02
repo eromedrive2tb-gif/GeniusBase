@@ -33,6 +33,8 @@ export interface OrderCheckoutData {
     total_amount: number    // cents
     status: 'PENDING' | 'PAID' | 'FAILED'
     brCode: string | null  // Pix Copia e Cola
+    paymentLinkUrl?: string | null
+    customer_id?: string | null
     items: OrderItemResult[]
     created_at: string
 }

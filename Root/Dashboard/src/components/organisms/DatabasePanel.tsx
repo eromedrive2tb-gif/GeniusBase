@@ -14,9 +14,24 @@
  * Mutações (CREATE) atualizam o array reativo localmente, sem re-fetch.
  */
 
+export interface Customer {
+    id: string
+    name: string
+    email: string | null
+    created_at: number
+}
+
+export interface Product {
+    id: string
+    name: string
+    price: number
+    stock: number
+    created_at: number
+}
+
 type DatabasePanelProps = {
-    customers: any[]
-    products: any[]
+    customers: Customer[]
+    products: Product[]
 }
 
 export const DatabasePanel = ({ customers, products }: DatabasePanelProps) => {
@@ -78,7 +93,7 @@ export const DatabasePanel = ({ customers, products }: DatabasePanelProps) => {
                     </form>
                     <button
                         class="btn-outline-cyan"
-                        onclick="exportTableToCSV('customers_table.csv', 'customers-table')"
+                        {...{ '@click': "exportTableToCSV('customers_table.csv', 'customers-table')" }}
                     >
                         📥 Exportar CSV
                     </button>
@@ -142,7 +157,7 @@ export const DatabasePanel = ({ customers, products }: DatabasePanelProps) => {
                     </form>
                     <button
                         class="btn-outline-cyan"
-                        onclick="exportTableToCSV('products_table.csv', 'products-table')"
+                        {...{ '@click': "exportTableToCSV('products_table.csv', 'products-table')" }}
                     >
                         📥 Exportar CSV
                     </button>
@@ -253,26 +268,26 @@ export const DatabasePanel = ({ customers, products }: DatabasePanelProps) => {
                                 this.loadingProduct = false;
                             }
                         },
+
+                        exportTableToCSV(filename, gridId) {
+                            const csv = [];
+                            const rows = document.querySelectorAll('#' + gridId + ' tr');
+                            for (const row of rows) {
+                                const cols = row.querySelectorAll('td, th');
+                                csv.push([...cols].map(c => '"' + c.innerText.replace(/"/g, '""') + '"').join(','));
+                            }
+                            const blob = new Blob([csv.join('\\n')], { type: 'text/csv' });
+                            const a = Object.assign(document.createElement('a'), {
+                                download: filename,
+                                href: URL.createObjectURL(blob),
+                                style: 'display:none',
+                            });
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                        }
                     };
                 }
-
-                window.exportTableToCSV = function(filename, gridId) {
-                    const csv = [];
-                    const rows = document.querySelectorAll('#' + gridId + ' tr');
-                    for (const row of rows) {
-                        const cols = row.querySelectorAll('td, th');
-                        csv.push([...cols].map(c => '"' + c.innerText.replace(/"/g, '""') + '"').join(','));
-                    }
-                    const blob = new Blob([csv.join('\\n')], { type: 'text/csv' });
-                    const a = Object.assign(document.createElement('a'), {
-                        download: filename,
-                        href: URL.createObjectURL(blob),
-                        style: 'display:none',
-                    });
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                };
             `}}></script>
         </div>
     )

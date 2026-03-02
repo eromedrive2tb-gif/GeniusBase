@@ -7,13 +7,20 @@
  */
 
 import { Hono } from 'hono'
+import { createAuthRouter } from '../../../utils/router'
 import { hashPassword } from '../../../utils/crypto'
 
-const endUserRegisterRoute = new Hono<{ Bindings: Env }>()
+const endUserRegisterRoute = createAuthRouter()
 
 endUserRegisterRoute.post('/', async (c) => {
-    // O tenantAuth.ts já validou a API Key do Dev e e injetou o tenantId
-    const tenantId = c.get('tenantId' as never) as string
+    // O apiKeyAuth.ts já validou o token e injetou os metadados.
+    // Apenas a Service API Key do Tenant pode disparar criação de usuários anônimos.
+    const tenantId = c.get('tenantId') as string
+    const userRole = c.get('userRole') as string
+
+    if (userRole !== 'service') {
+        return c.json({ error: 'Forbidden: Only service API keys can register new end-users' }, 403)
+    }
 
     const body = await c.req.json().catch(() => null)
     if (!body || !body.email || !body.password) {

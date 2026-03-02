@@ -186,7 +186,7 @@ export const OrdersPanel = () => {
                     <table style="width:100%; border-collapse:collapse; font-size:0.82rem;">
                         <thead>
                             <tr style="border-bottom:1px solid var(--gb-border);">
-                                <th style="padding:0.65rem 0.75rem; text-align:left; color:var(--gb-text-muted); font-weight:500; font-size:0.72rem; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap;">Pedido ID</th>
+                                <th style="padding:0.65rem 0.75rem; text-align:left; color:var(--gb-text-muted); font-weight:500; font-size:0.72rem; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap;">Pedido / Cliente</th>
                                 <th style="padding:0.65rem 0.75rem; text-align:left; color:var(--gb-text-muted); font-weight:500; font-size:0.72rem; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap;">Data / Hora</th>
                                 <th style="padding:0.65rem 0.75rem; text-align:center; color:var(--gb-text-muted); font-weight:500; font-size:0.72rem; text-transform:uppercase; letter-spacing:.04em;">Status</th>
                                 <th style="padding:0.65rem 0.75rem; text-align:center; color:var(--gb-text-muted); font-weight:500; font-size:0.72rem; text-transform:uppercase; letter-spacing:.04em;">Itens</th>
@@ -199,10 +199,15 @@ export const OrdersPanel = () => {
                                 <tr style="border-bottom:1px solid rgba(255,255,255,0.04); transition:background 0.2s;"
                                     {...{ '@mouseenter': "$el.style.background='rgba(255,255,255,0.02)'", '@mouseleave': "$el.style.background=''" }}
                                 >
-                                    {/* Order ID */}
+                                    {/* Order ID & Customer */}
                                     <td style="padding:0.65rem 0.75rem;">
-                                        <code style="font-size:0.72rem; color:var(--gb-cyan); background:rgba(6,182,212,0.08); padding:0.2rem 0.45rem; border-radius:4px; white-space:nowrap;"
+                                        <code style="font-size:0.72rem; color:var(--gb-cyan); background:rgba(6,182,212,0.08); padding:0.2rem 0.45rem; border-radius:4px; white-space:nowrap; display:inline-block; margin-bottom:0.15rem;"
                                             x-text="shortId(order.id)"></code>
+
+                                        <div x-show="order.customer_id" style="font-size: 0.75rem; color: var(--gb-text-bright); margin-top: 0.25rem;" x-text="order.customer_name || 'Cliente Sem Nome'"></div>
+                                        <div x-show="order.customer_id" style="font-size: 0.65rem; color: var(--gb-cyan);" x-text="order.customer_email"></div>
+
+                                        <div x-show="!order.customer_id" style="font-size: 0.7rem; color: var(--gb-muted); font-style: italic; margin-top: 0.25rem;">Cliente Visitante</div>
                                     </td>
 
                                     {/* Date */}

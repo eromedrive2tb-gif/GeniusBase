@@ -15,15 +15,16 @@
  */
 
 import { Hono } from 'hono'
+import { createAuthRouter } from '../../utils/router'
 import { apiKeyAuth } from '../../middlewares/apiKeyAuth'
 import { getProvider } from '../../payments/registry'
 
-const paymentsRoute = new Hono<{ Bindings: Env }>()
+const paymentsRoute = createAuthRouter()
 
 // ── POST /charges (Phase 12 compat — single charge without order) ───
 
 paymentsRoute.post('/charges', apiKeyAuth, async (c) => {
-    const tenantId = c.get('tenantId' as never) as string
+    const tenantId = c.get('tenantId') as string
 
     let body: { provider?: unknown; amount?: unknown; metadata?: unknown }
     try { body = await c.req.json() } catch {
@@ -134,58 +135,96 @@ paymentsRoute.post('/webhooks/:provider', async (c) => {
             .first<{ id: string; tenant_id: string; order_id: string; amount: number }>()
 
         if (txn) {
-            // ACID batch: mark transaction + order as paid atomically
-            await c.env.DB.batch([
+            // Include payer data in the update
+            const pName = event.payer_name ?? null
+            const pDoc = event.payer_document ?? null
+
+            // ACID batch: mark transaction (+ order if linked) as paid atomically
+            const statements = [
                 c.env.DB.prepare(
-                    `UPDATE tenant_transactions SET status = 'COMPLETED' WHERE id = ?`
-                ).bind(txn.id),
-                c.env.DB.prepare(
-                    `UPDATE tenant_orders SET status = 'PAID', updated_at = ? WHERE id = ?`
-                ).bind(now, txn.order_id),
-            ])
+                    `UPDATE tenant_transactions 
+                     SET status = 'COMPLETED', payer_name = ?, payer_document = ? 
+                     WHERE id = ?`
+                ).bind(pName, pDoc, txn.id)
+            ]
 
-            // Fetch enriched order for broadcast payload
-            const order = await c.env.DB.prepare(
-                `SELECT id, tenant_id, customer_id, status, total_amount, created_at, updated_at
-                 FROM tenant_orders WHERE id = ?`
-            ).bind(txn.order_id)
-                .first<{ id: string; tenant_id: string; customer_id: string | null; status: string; total_amount: number; created_at: string; updated_at: string }>()
+            if (txn.order_id) {
+                statements.push(
+                    c.env.DB.prepare(
+                        `UPDATE tenant_orders SET status = 'PAID', updated_at = ? WHERE id = ?`
+                    ).bind(now, txn.order_id)
+                )
+            }
 
-            const { results: orderItems } = await c.env.DB.prepare(
-                `SELECT product_id, quantity, price_at_time
-                 FROM tenant_order_items WHERE order_id = ?`
-            ).bind(txn.order_id).all()
+            await c.env.DB.batch(statements)
 
-            const payload = {
-                order_id: txn.order_id,
+            // ── Broadcast Logic ─────────────────────────────────────────
+
+            // 1. If it's an E-commerce Order, fetch details and broadcast ORDER_PAID
+            if (txn.order_id) {
+                const order = await c.env.DB.prepare(
+                    `SELECT id, tenant_id, customer_id, status, total_amount, created_at, updated_at
+                     FROM tenant_orders WHERE id = ?`
+                ).bind(txn.order_id)
+                    .first<{ id: string; tenant_id: string; customer_id: string | null; status: string; total_amount: number; created_at: string; updated_at: string }>()
+
+                const { results: orderItems } = await c.env.DB.prepare(
+                    `SELECT product_id, quantity, price_at_time
+                     FROM tenant_order_items WHERE order_id = ?`
+                ).bind(txn.order_id).all()
+
+                const orderPayload = {
+                    order_id: txn.order_id,
+                    transaction_id: txn.id,
+                    tenant_id: txn.tenant_id,
+                    total_amount: order?.total_amount ?? txn.amount,
+                    status: 'PAID',
+                    provider: providerName,
+                    provider_transaction_id: event.providerChargeId,
+                    items: orderItems,
+                    payer_name: pName,
+                    payer_document: pDoc,
+                    updated_at: now,
+                }
+
+                try {
+                    const realtimeId = c.env.REALTIME_STATE.idFromName(txn.tenant_id)
+                    await c.env.REALTIME_STATE.get(realtimeId).broadcast(
+                        JSON.stringify({ type: 'PUSH', event: 'ORDER_PAID', payload: orderPayload })
+                    )
+                } catch { /* ignore */ }
+
+                try {
+                    const dashboardId = c.env.DASHBOARD_RPC_STATE.idFromName(txn.tenant_id)
+                    await c.env.DASHBOARD_RPC_STATE.get(dashboardId).push('ORDER_PAID', orderPayload)
+                } catch { /* admin offline */ }
+            }
+
+            // 2. ALWAYS broadcast TRANSACTION_COMPLETED (for standalone PIX / general tracking)
+            const trxPayload = {
                 transaction_id: txn.id,
                 tenant_id: txn.tenant_id,
-                total_amount: order?.total_amount ?? txn.amount,
-                status: 'PAID',
+                order_id: txn.order_id,
+                amount: txn.amount,
+                status: 'COMPLETED',
                 provider: providerName,
-                provider_transaction_id: event.providerChargeId,
-                items: orderItems,
+                payer_name: pName,
+                payer_document: pDoc,
                 updated_at: now,
             }
 
-            // ── Dual Broadcast: ORDER_PAID ─────────────────────
-            // 1. REALTIME_STATE → client SDK (checkout screen, store frontend)
             try {
                 const realtimeId = c.env.REALTIME_STATE.idFromName(txn.tenant_id)
                 await c.env.REALTIME_STATE.get(realtimeId).broadcast(
-                    JSON.stringify({ type: 'PUSH', event: 'ORDER_PAID', payload })
+                    JSON.stringify({ type: 'PUSH', event: 'TRANSACTION_COMPLETED', payload: trxPayload })
                 )
-            } catch (err) {
-                console.warn('[webhook] REALTIME_STATE broadcast failed:', err)
-            }
+            } catch { /* ignore */ }
 
-            // 2. DASHBOARD_RPC_STATE → admin dashboard (live order table)
             try {
                 const dashboardId = c.env.DASHBOARD_RPC_STATE.idFromName(txn.tenant_id)
-                await c.env.DASHBOARD_RPC_STATE.get(dashboardId).push('ORDER_PAID', payload)
-            } catch (err) {
-                console.warn('[webhook] DASHBOARD_RPC_STATE push failed (admin offline?):', err)
-            }
+                await c.env.DASHBOARD_RPC_STATE.get(dashboardId).push('TRANSACTION_COMPLETED', trxPayload)
+            } catch { /* admin offline */ }
+
         } else {
             // Phase 12 fallback: legacy tenant_charges (single charge, no order)
             const row = await c.env.DB.prepare(

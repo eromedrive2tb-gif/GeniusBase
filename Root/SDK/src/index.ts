@@ -33,6 +33,7 @@ import { RealtimeClient } from './realtime'
 import { EventsClient } from './events'
 import { PaymentsClient } from './payments'
 import { OrdersClient } from './orders'
+import { TransactionsClient } from './transactions'
 
 export type { AuthResponse, Session, UserRecord } from './auth'
 export type { QueryResponse } from './database'
@@ -45,6 +46,8 @@ export { AuthClient } from './auth'
 export { EventsClient } from './events'
 export { PaymentsClient } from './payments'
 export { OrdersClient } from './orders'
+export { TransactionsClient } from './transactions'
+export type { TransactionCheckoutData } from './transactions'
 
 // ─── GeniusBaseClient ──────────────────────────────────────
 
@@ -67,6 +70,9 @@ class GeniusBaseClient {
     /** Create structured orders (cart → checkout → PIX QR code) */
     readonly orders: OrdersClient
 
+    /** Create standalone transactions (no cart/items) like donations */
+    readonly transactions: TransactionsClient
+
     constructor(baseUrl: string, apiKey: string) {
         // Trim trailing slash for consistent URL construction
         const url = baseUrl.replace(/\/$/, '')
@@ -77,6 +83,7 @@ class GeniusBaseClient {
         this.events = new EventsClient(url, apiKey)
         this.payments = new PaymentsClient(url, apiKey)
         this.orders = new OrdersClient(url, apiKey)
+        this.transactions = new TransactionsClient(url, apiKey)
     }
 
     /**

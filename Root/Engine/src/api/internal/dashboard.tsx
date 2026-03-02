@@ -10,16 +10,17 @@
  */
 
 import { Hono } from 'hono'
+import { createAuthRouter } from '../../utils/router'
 import { adminAuth } from '../../middlewares/adminAuth'
 import { Home } from '../../../../Dashboard/src/pages/Home'
 
-const internalDashboardRoute = new Hono<{ Bindings: Env }>()
+const internalDashboardRoute = createAuthRouter()
 
 // Toda requisição a esta rota exige autenticação de administrador
 internalDashboardRoute.use('*', adminAuth)
 
 internalDashboardRoute.get('/', async (c) => {
-    const tenantId = c.get('tenantId' as never) as string
+    const tenantId = c.get('tenantId') as string
 
     // Busca paralela dos datasets — sem bloquear a thread além do necessário
     const [usersResult, customersResult, productsResult, eventsResult] = await Promise.all([

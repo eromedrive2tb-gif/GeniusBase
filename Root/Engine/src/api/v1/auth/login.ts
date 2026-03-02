@@ -7,14 +7,15 @@
  */
 
 import { Hono } from 'hono'
+import { createAuthRouter } from '../../../utils/router'
 import { verifyPassword } from '../../../utils/crypto'
 import { generateToken } from '../../../utils/token'
 
-const endUserLoginRoute = new Hono<{ Bindings: Env }>()
+const endUserLoginRoute = createAuthRouter()
 
 endUserLoginRoute.post('/', async (c) => {
     // O tenantAuth.ts já validou a API Key do Dev e e injetou o tenantId
-    const tenantId = c.get('tenantId' as never) as string
+    const tenantId = c.get('tenantId') as string
 
     const body = await c.req.json().catch(() => null)
     if (!body || !body.email || !body.password) {

@@ -5,291 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeniusBase Playground — SDK Demo</title>
-    <style>
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: system-ui, sans-serif;
-            background: #0a0a0f;
-            color: #e2e8f0;
-            min-height: 100vh;
-            padding: 2rem;
-        }
-
-        header {
-            max-width: 860px;
-            margin: 0 auto 2rem;
-            border-bottom: 1px solid #1e293b;
-            padding-bottom: 1.25rem;
-        }
-
-        header h1 {
-            font-size: 1.5rem;
-            color: #06b6d4;
-            letter-spacing: -0.5px;
-        }
-
-        header p {
-            color: #64748b;
-            font-size: 0.85rem;
-            margin-top: 0.25rem;
-        }
-
-        .container {
-            max-width: 860px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 1.25rem;
-        }
-
-        /* Status bar */
-        .status-bar {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.78rem;
-            color: #64748b;
-            background: #0f172a;
-            border: 1px solid #1e293b;
-            border-radius: 6px;
-            padding: 0.5rem 0.75rem;
-        }
-
-        .dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: #f87171;
-            flex-shrink: 0;
-            transition: background 0.4s;
-        }
-
-        .dot.on {
-            background: #4ade80;
-            box-shadow: 0 0 6px #4ade8066;
-        }
-
-        .dot.warn {
-            background: #fbbf24;
-        }
-
-        /* Action grid */
-        .action-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 0.75rem;
-        }
-
-        .action-card {
-            background: #0f172a;
-            border: 1px solid #1e293b;
-            border-radius: 8px;
-            padding: 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .action-card__label {
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #475569;
-        }
-
-        .action-card__title {
-            font-size: 0.88rem;
-            color: #cbd5e1;
-            font-weight: 500;
-        }
-
-        .action-card__method {
-            font-family: monospace;
-            font-size: 0.72rem;
-            color: #06b6d4;
-            background: rgba(6, 182, 212, 0.08);
-            padding: 0.15rem 0.4rem;
-            border-radius: 3px;
-            border: 1px solid rgba(6, 182, 212, 0.2);
-            display: inline-block;
-            width: fit-content;
-        }
-
-        button {
-            padding: 0.45rem 0.9rem;
-            background: #06b6d4;
-            color: #000;
-            border: none;
-            border-radius: 4px;
-            font-weight: 700;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: opacity 0.15s;
-            width: fit-content;
-        }
-
-        button:hover {
-            opacity: 0.85;
-        }
-
-        button:disabled {
-            opacity: 0.35;
-            cursor: not-allowed;
-        }
-
-        button.secondary {
-            background: #1e293b;
-            color: #94a3b8;
-        }
-
-        /* Log */
-        .log-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
-        }
-
-        .log-header h2 {
-            font-size: 0.85rem;
-            color: #94a3b8;
-            font-weight: 600;
-        }
-
-        #log {
-            background: #080c14;
-            border: 1px solid #1e293b;
-            border-radius: 8px;
-            padding: 1rem;
-            font-family: 'JetBrains Mono', 'Fira Code', monospace;
-            font-size: 0.75rem;
-            line-height: 1.7;
-            min-height: 220px;
-            max-height: 420px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            word-break: break-all;
-            color: #64748b;
-        }
-
-        .warn-banner {
-            background: rgba(251, 191, 36, 0.07);
-            border: 1px solid rgba(251, 191, 36, 0.3);
-            color: #fbbf24;
-            padding: 0.6rem 0.9rem;
-            border-radius: 6px;
-            font-size: 0.8rem;
-        }
-
-        /* PIX panel */
-        .pix-panel {
-            background: #0b1521;
-            border: 1px solid rgba(74, 222, 128, 0.25);
-            border-radius: 10px;
-            padding: 1.25rem;
-            display: flex;
-            gap: 1.25rem;
-            align-items: flex-start;
-            flex-wrap: wrap;
-        }
-
-        .pix-qr {
-            width: 140px;
-            height: 140px;
-            border-radius: 6px;
-            background: #fff;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-
-        .pix-qr img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-
-        .pix-info {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .pix-info__label {
-            font-size: 0.68rem;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-        }
-
-        .pix-info__value {
-            font-family: monospace;
-            font-size: 0.72rem;
-            color: #94a3b8;
-            word-break: break-all;
-        }
-
-        .pix-info__status {
-            font-size: 0.78rem;
-            font-weight: 600;
-            padding: 0.25rem 0.6rem;
-            border-radius: 20px;
-            width: fit-content;
-        }
-
-        .pix-info__status--pending {
-            background: rgba(251, 191, 36, 0.12);
-            color: #fbbf24;
-            border: 1px solid rgba(251, 191, 36, 0.3);
-        }
-
-        .pix-info__status--paid {
-            background: rgba(74, 222, 128, 0.12);
-            color: #4ade80;
-            border: 1px solid rgba(74, 222, 128, 0.3);
-        }
-
-        .pix-info__status--expired {
-            background: rgba(248, 113, 113, 0.12);
-            color: #f87171;
-            border: 1px solid rgba(248, 113, 113, 0.3);
-        }
-
-        .pix-info__copy {
-            font-size: 0.72rem;
-            color: #fff;
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 4px;
-            padding: 0.25rem 0.6rem;
-            cursor: pointer;
-            width: fit-content;
-            font-weight: 600;
-        }
-
-        .pix-info__copy:hover {
-            background: #334155;
-        }
-
-        button.btn-simulate {
-            background: #7c3aed;
-            color: #fff;
-            font-size: 0.78rem;
-            padding: 0.4rem 0.85rem;
-            width: fit-content;
-        }
-    </style>
+    <!-- CSS Modularizado -->
+    <link rel="stylesheet" href="assets/css/style.css">
 </head>
 
 <body>
@@ -300,20 +17,21 @@
 
     <div class="container">
 
-        <!-- Config warning -->
+        <!-- Aviso de configuração pendente -->
         <div class="warn-banner" id="warn-key" style="display:none;">
-            ⚠️ <strong>SERVICE_API_KEY</strong> não configurada. Edite a constante no topo do script antes de testar.
+            ⚠️ <strong>SERVICE_API_KEY</strong> não configurada. Edite `src/js/client.js` antes de testar.
         </div>
 
-        <!-- WebSocket status -->
+        <!-- Barra de Status Realtime -->
         <div class="status-bar">
             <div class="dot" id="ws-dot"></div>
             <span id="ws-label">Iniciando canal Realtime…</span>
         </div>
 
-        <!-- Action cards -->
+        <!-- Grade de Ações do SDK -->
         <div class="action-grid">
 
+            <!-- Database: Inserção -->
             <div class="action-card">
                 <span class="action-card__label">Database</span>
                 <span class="action-card__title">Criar Produto Falso</span>
@@ -321,6 +39,7 @@
                 <button id="btn-insert">⚡ Executar</button>
             </div>
 
+            <!-- Database: Consulta -->
             <div class="action-card">
                 <span class="action-card__label">Database</span>
                 <span class="action-card__title">Listar Produtos</span>
@@ -328,15 +47,17 @@
                 <button id="btn-fetch">📋 Executar</button>
             </div>
 
+            <!-- Telemetria: Eventos -->
             <div class="action-card">
-                <span class="action-card__label">Telemetria (Igor)</span>
+                <span class="action-card__label">Telemetria</span>
                 <span class="action-card__title">Disparar Evento Customizado</span>
                 <span class="action-card__method">gb.events.track()</span>
                 <button id="btn-event">⚡ Disparar</button>
             </div>
 
+            <!-- Pagamento: Carrinho -->
             <div class="action-card" style="border-color: rgba(74,222,128,0.2);">
-                <span class="action-card__label" style="color: #4ade80;">Pagamentos (PIX)</span>
+                <span class="action-card__label" style="color: #4ade80;">Pagamentos (Ecommerce)</span>
                 <span class="action-card__title">Checkout com Carrinho — R$100,00</span>
                 <span class="action-card__method"
                     style="color: #4ade80; background: rgba(74,222,128,0.08); border-color: rgba(74,222,128,0.2);">gb.orders.checkout()</span>
@@ -344,38 +65,108 @@
                     PIX</button>
             </div>
 
+            <!-- Pagamento: Carrinho (CRM) -->
+            <div class="action-card" style="border-color: rgba(56,189,248,0.2);">
+                <span class="action-card__label" style="color: #38bdf8;">Pagamentos (Ecom + CRM)</span>
+                <span class="action-card__title">Checkout Vinculado a Cliente</span>
+                <span class="action-card__method"
+                    style="color: #38bdf8; background: rgba(56,189,248,0.08); border-color: rgba(56,189,248,0.2);">gb.orders.checkout({
+                    customer_id })</span>
+                <button id="btn-pix-crm" style="background: linear-gradient(135deg, #38bdf8, #0284c7);">🛍 Checkout
+                    (CRM)</button>
+            </div>
+
+            <!-- Pagamento: Avulso -->
+            <div class="action-card" style="border-color: rgba(168,85,247,0.2);">
+                <span class="action-card__label" style="color: #a855f7;">Pagamentos (Avulso)</span>
+                <span class="action-card__title">PIX Direto / Doação</span>
+                <span class="action-card__method"
+                    style="color: #a855f7; background: rgba(168,85,247,0.08); border-color: rgba(168,85,247,0.2);">gb.transactions.create()</span>
+                <div style="display:flex;gap:0.5rem;margin-top:0.25rem;">
+                    <input type="number" id="txn-amount" value="50"
+                        style="width:70px;padding:0.3rem;border-radius:4px;border:1px solid #334155;background:#1e293b;color:#fff;font-size:0.8rem;outline:none;">
+                    <button id="btn-txn" style="background: linear-gradient(135deg, #a855f7, #9333ea);">💸 Gerar
+                        PIX</button>
+                </div>
+            </div>
+
         </div>
 
-        <!-- PIX Live Panel (shown after charge generated) -->
+        <!-- Painel PIX E-commerce (Resultado de Checkout) -->
         <div id="pix-panel" style="display:none;">
             <div class="pix-panel">
-                <div class="pix-qr">
-                    <img id="pix-qr-img" src="" alt="QR Code PIX" />
-                </div>
+                <div class="pix-qr"><img id="pix-qr-img" src="" alt="QR Code PIX" /></div>
                 <div class="pix-info">
-                    <div class="pix-info__label">Status da Cobrança</div>
+                    <div class="pix-info__label">Status do Pedido</div>
                     <div id="pix-status" class="pix-info__status pix-info__status--pending">⏳ Aguardando Pagamento</div>
 
-                    <div class="pix-info__label" style="margin-top:0.4rem;">Correlation ID</div>
+                    <div class="pix-info__label" style="margin-top:0.4rem;">Correlation ID (Order ID)</div>
                     <div id="pix-correlation" class="pix-info__value">—</div>
 
                     <div class="pix-info__label" style="margin-top:0.4rem;">Copia e Cola (brCode)</div>
                     <div id="pix-brcode" class="pix-info__value"
                         style="max-height:4rem;overflow:hidden;text-overflow:ellipsis;">—</div>
-                    <button class="pix-info__copy" id="btn-copy-brcode">📋 Copiar brCode</button>
+
+                    <div style="display:flex;gap:0.5rem;margin-top:0.25rem;flex-wrap:wrap;">
+                        <button class="pix-info__copy" id="btn-copy-brcode">📋 Copiar brCode</button>
+                        <a id="pix-link" href="#" target="_blank" class="pix-info__copy"
+                            style="text-decoration:none; background:#0ea5e9; border-color:#0284c7; display:none;">🔗
+                            Abrir Link de Pagamento</a>
+                    </div>
 
                     <div style="display:flex;gap:0.5rem;margin-top:0.75rem;flex-wrap:wrap;">
                         <button class="btn-simulate" id="btn-simulate-webhook">🟣 Simular Webhook Pago</button>
-                        <button class="secondary" id="btn-pix-reset" style="font-size:0.72rem;">↩ Nova Cobrança</button>
+                        <button class="secondary" id="btn-pix-reset" style="font-size:0.72rem;">↩ Novo Checkout</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Log output -->
-        <div>
+        <!-- Painel PIX Transação Avulsa (Doação / Outros) -->
+        <div id="txn-panel" style="display:none; margin-top:1rem;">
+            <div class="pix-panel" style="border-color: rgba(168,85,247,0.25);">
+                <div class="pix-qr"><img id="txn-qr-img" src="" alt="QR Code PIX Avulso" /></div>
+                <div class="pix-info">
+                    <div class="pix-info__label" style="color:#a855f7;">Status da Transação Avulsa</div>
+                    <div id="txn-status" class="pix-info__status pix-info__status--pending">⏳ Aguardando Pagamento</div>
+
+                    <!-- Dados do pagador enriquecidos via Webhook/SDK -->
+                    <div id="txn-payer-box"
+                        style="display:none; margin-top:0.6rem; padding:0.5rem; background:rgba(168,85,247,0.1); border-radius:6px; border:1px solid rgba(168,85,247,0.2);">
+                        <div class="pix-info__label">👤 Pagador (Enriquecido via Webhook)</div>
+                        <div id="txn-payer-name"
+                            style="font-size:0.8rem; color:#fff; font-weight:600; margin-top:0.2rem;"></div>
+                        <div id="txn-payer-doc" style="font-size:0.7rem; color:#cbd5e1;"></div>
+                    </div>
+
+                    <div class="pix-info__label" style="margin-top:0.6rem;">Transaction ID</div>
+                    <div id="txn-id-val" class="pix-info__value">—</div>
+
+                    <div class="pix-info__label" style="margin-top:0.4rem;">Copia e Cola (brCode)</div>
+                    <div id="txn-brcode" class="pix-info__value"
+                        style="max-height:4rem;overflow:hidden;text-overflow:ellipsis;">—</div>
+
+                    <div style="display:flex;gap:0.5rem;margin-top:0.25rem;flex-wrap:wrap;">
+                        <button class="pix-info__copy" id="btn-copy-txn-brcode">📋 Copiar brCode</button>
+                        <a id="txn-link" href="#" target="_blank" class="pix-info__copy"
+                            style="text-decoration:none; background:#0ea5e9; border-color:#0284c7; display:none;">🔗
+                            Abrir Link de Pagamento</a>
+                    </div>
+
+                    <div style="display:flex;gap:0.5rem;margin-top:0.75rem;flex-wrap:wrap;">
+                        <button class="btn-simulate" id="btn-simulate-txn-webhook" style="background:#a855f7;">🟣
+                            Simular Pagamento</button>
+                        <button class="secondary" id="btn-txn-reset" style="font-size:0.72rem;">↩ Nova
+                            Transação</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Console de Log Live -->
+        <div style="margin-top: 1rem;">
             <div class="log-header">
-                <h2>📡 Live Log</h2>
+                <h2>📡 Live Console (SDK Events)</h2>
                 <button class="secondary" id="btn-clear" style="font-size:0.72rem; padding:0.3rem 0.6rem;">🗑
                     Limpar</button>
             </div>
@@ -384,232 +175,8 @@
 
     </div>
 
-    <script type="module">
-        // ────────────────────────────────────────────────────
-        // CONFIGURAÇÃO
-        // ────────────────────────────────────────────────────
-        const GB_URL = 'http://localhost:8787'
-        const SERVICE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyZmI5NDc1My1kZWIwLTRmNzgtODBhMy0xZmZkMjBkN2MyZTciLCJ0aWQiOiJ0X2Q0MjQzZGI2OGJlZiIsImp0aSI6ImE2N2NhYjkwLWJiOGUtNDlhMy04Mzg5LTdhNmQ1Zjk4MjFjYiIsInJvbGUiOiJzZXJ2aWNlIiwiaWF0IjoxNzcyMzQwNTYzLCJleHAiOjE4MDM4NzY1NjN9.ahXunrZFEj_Ig6jsjojYbvb1fXuF4gYeaNBE57HvBJU'
-        // ────────────────────────────────────────────────────
-
-        import { createClient } from '/SDK/dist/index.js?v=16'
-
-        if (SERVICE_API_KEY.startsWith('COLE')) {
-            document.getElementById('warn-key').style.display = 'block'
-        }
-
-        const gb = createClient(GB_URL, SERVICE_API_KEY)
-        const logEl = document.getElementById('log')
-        const dot = document.getElementById('ws-dot')
-        const label = document.getElementById('ws-label')
-
-        // ── Logging helper ───────────────────────────────────
-        function log(icon, msg, data) {
-            const time = new Date().toLocaleTimeString('pt-BR')
-            const body = data !== undefined
-                ? '\n    ' + JSON.stringify(data, null, 2).replace(/\n/g, '\n    ')
-                : ''
-            logEl.textContent += `\n[${time}] ${icon} ${msg}${body}\n`
-            logEl.scrollTop = logEl.scrollHeight
-        }
-
-        // ── 1. Realtime subscription — wired after PIX panel vars (see section 5) ─
-
-        setTimeout(() => {
-            dot.classList.add('on')
-            label.textContent = 'Realtime conectado (WebSocket ativo)'
-            log('🔌', 'WebSocket do GeniusBase estabelecido com sucesso')
-        }, 1200)
-
-        // ── 2. Criar produto ─────────────────────────────────
-        const btnInsert = document.getElementById('btn-insert')
-        btnInsert.addEventListener('click', async () => {
-            btnInsert.disabled = true; btnInsert.textContent = 'Criando…'
-            const { data, error } = await gb.from('products').insert({
-                name: `Produto Playground #${Math.floor(Math.random() * 9000 + 1000)}`,
-                price: 9900,
-                stock: 10,
-            })
-            if (error) log('❌', 'Erro em gb.from().insert()', error)
-            else log('✅', 'gb.from("products").insert() → OK', data)
-            btnInsert.disabled = false; btnInsert.textContent = '⚡ Executar'
-        })
-
-        // ── 3. Listar produtos ───────────────────────────────
-        const btnFetch = document.getElementById('btn-fetch')
-        btnFetch.addEventListener('click', async () => {
-            btnFetch.disabled = true; btnFetch.textContent = 'Buscando…'
-            const { data, error } = await gb.from('products').select()
-            if (error) log('❌', 'Erro em gb.from().select()', error)
-            else log('📌', `gb.from("products").select() → ${Array.isArray(data) ? data.length : 0} produto(s)`, Array.isArray(data) ? data.slice(0, 2) : data)
-            btnFetch.disabled = false; btnFetch.textContent = '📋 Executar'
-        })
-
-        // ── 4. Evento customizado (Igor) ─────────────────────
-        const btnEvent = document.getElementById('btn-event')
-        btnEvent.addEventListener('click', async () => {
-            btnEvent.disabled = true; btnEvent.textContent = 'Disparando…'
-            const { data, error } = await gb.events.track('Nova Compra PIX', {
-                valor: 150.00,
-                metodo: 'pix',
-                usuario: 'playground@teste.com',
-            })
-            if (error) log('❌', 'Erro em gb.events.track()', error)
-            else log('⚡', 'gb.events.track() → OK (verifique o Dashboard!)', data)
-            btnEvent.disabled = false; btnEvent.textContent = '⚡ Disparar'
-        })
-
-        // ── 5. PIX: Gerar Cobrança + full flow ──────────────────
-        // ── 5. Checkout: gb.orders.checkout() + full flow ─────────────
-        let currentCorrelationId = null   // = order_id (set on successful checkout)
-        let pollingInterval = null        // webhook fallback
-        const pixPanel = document.getElementById('pix-panel')
-        const pixStatus = document.getElementById('pix-status')
-        const pixCorrelation = document.getElementById('pix-correlation')
-        const pixBrcode = document.getElementById('pix-brcode')
-        const pixQrImg = document.getElementById('pix-qr-img')
-
-        // NOTE: SDK select() now unwraps {data:[...]} automatically — data is the array directly
-        async function getFirstProductId() {
-            const { data, error } = await gb.from('products').select()
-            if (error) { log('❌', 'Erro ao buscar produtos:', error); return null }
-            if (Array.isArray(data) && data.length > 0) return data[0].id
-            return null
-        }
-
-        const btnPix = document.getElementById('btn-pix')
-        btnPix.addEventListener('click', async () => {
-            btnPix.disabled = true; btnPix.textContent = 'Gerando…'
-
-            const productId = await getFirstProductId()
-            if (!productId) {
-                log('⚠️', 'Nenhum produto disponível. Crie um produto primeiro (botão ⋯ Criar Produto).')
-                btnPix.disabled = false; btnPix.textContent = '🛍 Checkout PIX'
-                return
-            }
-
-            const { data, error } = await gb.orders.checkout({
-                items: [{ product_id: productId, quantity: 1 }],
-                provider: 'openpix',
-            })
-
-            if (error) {
-                log('❌', 'Erro em gb.orders.checkout()', error)
-                btnPix.disabled = false; btnPix.textContent = '🛍 Checkout PIX'
-                return
-            }
-
-            // order_id = correlationID (set before calling gateway)
-            currentCorrelationId = data.order_id
-            log('🛍', `✅ PEDIDO CRIADO! order_id: ${data.order_id} | total: R$ ${(data.total_amount / 100).toFixed(2)}`)
-            log('📦', 'Itens do pedido:', data.items)
-
-            pixCorrelation.textContent = data.order_id ?? '—'
-            if (data.brCode) {
-                pixBrcode.textContent = data.brCode
-                const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=' + encodeURIComponent(data.brCode)
-                pixQrImg.src = qrUrl
-                log('📋', 'brCode gerado — QR renderizado na tela')
-            } else {
-                pixBrcode.textContent = '(brCode não disponível — configure App ID Woovi)'
-                pixQrImg.src = ''
-            }
-
-            pixStatus.className = 'pix-info__status pix-info__status--pending'
-            pixStatus.textContent = '⏳ Aguardando Pagamento'
-            pixPanel.style.display = 'block'
-
-            // Start robust polling fallback in case WebSocket reconnects and misses event
-            if (pollingInterval) clearInterval(pollingInterval)
-            pollingInterval = setInterval(async () => {
-                const { data: order } = await gb.orders.getStatus(data.order_id)
-                if (order?.status === 'PAID') {
-                    log('💳', '🔄 RECOVERY POLLING → Pedido Pago confirmado!', order)
-                    if (pixPanel.style.display !== 'none') {
-                        pixStatus.className = 'pix-info__status pix-info__status--paid'
-                        pixStatus.textContent = '✅ Pedido Pago!'
-                    }
-                    clearInterval(pollingInterval)
-                }
-            }, 3000)
-
-            btnPix.disabled = false; btnPix.textContent = '🛍 Nova Cobrança'
-        })
-
-        // ── Now subscribe — pixPanel is defined above ────────────────────
-        gb.channel('loja')
-            .on('PRODUCT_CREATED', p => log('📦', 'REALTIME → PRODUCT_CREATED', p))
-            .on('CUSTOM_EVENT_RECEIVED', p => log('⚡', 'REALTIME → CUSTOM_EVENT_RECEIVED', p))
-            .on('ORDER_PAID', p => {
-                log('💳', '🎉 ORDER_PAID recebido via WebSocket!', p)
-                if (pollingInterval) clearInterval(pollingInterval)
-                if (pixPanel.style.display !== 'none') {
-                    pixStatus.className = 'pix-info__status pix-info__status--paid'
-                    pixStatus.textContent = '✅ Pedido Pago!'
-                }
-            })
-            .subscribe()
-
-        // ── Copiar brCode ──────────────────────────────────────
-        document.getElementById('btn-copy-brcode').addEventListener('click', () => {
-            const code = pixBrcode.textContent
-            if (code && code !== '—') {
-                navigator.clipboard.writeText(code).then(() => {
-                    log('📋', 'brCode copiado para o clipboard!')
-                })
-            }
-        })
-
-        // ── Reset cobrança ─────────────────────────────────────
-        document.getElementById('btn-pix-reset').addEventListener('click', () => {
-            pixPanel.style.display = 'none'
-            currentCorrelationId = null
-            if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null }
-            pixQrImg.src = ''
-        })
-
-        // ── Simular Webhook (Woovi → nosso backend) ────────────
-        document.getElementById('btn-simulate-webhook').addEventListener('click', async () => {
-            if (!currentCorrelationId) {
-                log('⚠️', 'Nenhuma cobrança ativa. Gere um PIX primeiro.')
-                return
-            }
-            const btn = document.getElementById('btn-simulate-webhook')
-            btn.disabled = true; btn.textContent = 'Enviando…'
-
-            log('🟣', 'Simulando webhook POST /api/v1/payments/webhooks/openpix...')
-
-            try {
-                const webhookPayload = {
-                    event: 'OPENPIX:CHARGE_COMPLETED',
-                    charge: {
-                        correlationID: currentCorrelationId,
-                        status: 'COMPLETED',
-                        value: 10000,
-                    }
-                }
-                const res = await fetch(`${GB_URL}/api/v1/payments/webhooks/openpix`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(webhookPayload),
-                })
-                const body = await res.json()
-                log('🟣', 'Webhook enviado → ' + res.status, body)
-                if (!res.ok) log('⚠️', 'Backend não processou o webhook como esperado')
-            } catch (e) {
-                log('❌', 'Erro ao enviar webhook:', e.message)
-            } finally {
-                btn.disabled = false; btn.textContent = '🟣 Simular Webhook Pago'
-            }
-        })
-
-
-
-        // ── 6. Clear log ─────────────────────────────────────────
-        document.getElementById('btn-clear').addEventListener('click', () => {
-            logEl.textContent = 'Log limpo.\n'
-        })
-    </script>
+    <!-- Script Principal Modular (Cache Buster) -->
+    <script type="module" src="src/js/playground.js?v=3"></script>
 </body>
 
 </html>

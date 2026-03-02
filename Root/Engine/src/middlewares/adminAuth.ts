@@ -23,32 +23,34 @@ export const adminAuth = createMiddleware<{
         ? authHeader.slice(7)
         : cookieToken
 
+    // Content negotiation helper
+    const sendAuthError = (status: 401 | 403 | 500, message: string) => {
+        const isHxRequest = c.req.header('hx-request') === 'true'
+        const acceptsJson = c.req.header('accept')?.includes('application/json')
+
+        if (isHxRequest || acceptsJson) {
+            return c.json({ error: message }, status)
+        }
+        return c.html(`<div class="alert alert-error" role="alert">${escapeHtml(message)}</div>`, status)
+    }
+
     if (!token) {
-        return c.html(
-            '<div class="alert alert-error" role="alert">Authentication required. Please log in.</div>',
-            401
-        )
+        return sendAuthError(401, 'Authentication required. Please log in.')
     }
 
     try {
         const secret = c.env.ADMIN_JWT_SECRET
         if (!secret) {
             console.error('[adminAuth] ADMIN_JWT_SECRET not configured')
-            return c.html(
-                '<div class="alert alert-error" role="alert">Server configuration error.</div>',
-                500
-            )
+            return sendAuthError(500, 'Server configuration error.')
         }
 
         // 1. Verify JWT signature and expiration
         const payload = await verifyToken(token, secret)
 
-        // Ensure it is an admin/owner token, not an end-user token
-        if (payload.role === 'end_user') {
-            return c.html(
-                '<div class="alert alert-error" role="alert">Acesso restrito a administradores.</div>',
-                403
-            )
+        // Ensure it is an admin/owner token, not an end-user or service token
+        if (payload.role === 'end_user' || payload.role === 'service') {
+            return sendAuthError(403, 'Acesso restrito a administradores.')
         }
 
         // 2. Check if the session (JTI) is active in KV
@@ -56,10 +58,7 @@ export const adminAuth = createMiddleware<{
         const session = await c.env.KV_CACHE.get(sessionKey)
 
         if (!session) {
-            return c.html(
-                '<div class="alert alert-error" role="alert">Session expired or revoked. Please log in again.</div>',
-                401
-            )
+            return sendAuthError(401, 'Session expired or revoked. Please log in again.')
         }
 
         // 3. Inject tenant context into Hono's context
@@ -71,11 +70,7 @@ export const adminAuth = createMiddleware<{
     } catch (err) {
         const message = err instanceof Error ? err.message : 'Invalid token'
         console.error('[adminAuth] Token validation failed:', message)
-
-        return c.html(
-            `<div class="alert alert-error" role="alert">${escapeHtml(message)}</div>`,
-            401
-        )
+        return sendAuthError(401, message)
     }
 })
 

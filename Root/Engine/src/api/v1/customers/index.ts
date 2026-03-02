@@ -7,16 +7,17 @@
  */
 
 import { Hono } from 'hono'
+import { createAuthRouter } from '../../../utils/router'
 import { apiKeyAuth } from '../../../middlewares/apiKeyAuth'
 
-const customersRoute = new Hono<{ Bindings: Env }>()
+const customersRoute = createAuthRouter()
 
 // Protege todas as rotas neste app com o middleware tenantAuth
 customersRoute.use('*', apiKeyAuth)
 
 // List Customers
 customersRoute.get('/', async (c) => {
-    const tenantId = c.get('tenantId' as never) as string
+    const tenantId = c.get('tenantId') as string
 
     // Isola as queries por tenant usando c.get('tenantId')
     const { results } = await c.env.DB.prepare(
@@ -30,7 +31,7 @@ customersRoute.get('/', async (c) => {
 
 // Create Customer
 customersRoute.post('/', async (c) => {
-    const tenantId = c.get('tenantId' as never) as string
+    const tenantId = c.get('tenantId') as string
     const body = await c.req.json()
 
     if (!body.name) {

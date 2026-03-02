@@ -25,6 +25,8 @@ export interface ChargeResponse {
     providerChargeId: string
     /** PIX BR Code (Copia e Cola) — null for non-Pix providers */
     brCode: string | null
+    /** Hosted link for checkout/payment if applicable */
+    paymentLinkUrl?: string
     /** Initial status as returned by the provider */
     status: string
     /** Raw provider response for debugging / audit trail */
@@ -36,6 +38,10 @@ export interface WebhookEvent {
     type: 'CHARGE_COMPLETED' | 'CHARGE_FAILED' | 'UNKNOWN'
     /** Provider-side charge ID to look up in tenant_charges */
     providerChargeId: string
+    /** Extracted payer name, if available */
+    payer_name?: string
+    /** Extracted payer document (CPF/CNPJ), if available */
+    payer_document?: string
     /** Raw webhook body for audit */
     raw: unknown
 }

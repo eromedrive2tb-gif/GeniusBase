@@ -18,14 +18,15 @@
  */
 
 import { Hono } from 'hono'
+import { createAuthRouter } from '../../utils/router'
 import { apiKeyAuth } from '../../middlewares/apiKeyAuth'
 
-const eventsRoute = new Hono<{ Bindings: Env }>()
+const eventsRoute = createAuthRouter()
 
 eventsRoute.use('*', apiKeyAuth)
 
 eventsRoute.post('/', async (c) => {
-    const tenantId = c.get('tenantId' as never) as string
+    const tenantId = c.get('tenantId') as string
 
     let body: { name?: unknown; payload?: unknown }
     try {

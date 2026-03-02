@@ -77,7 +77,7 @@ export class DashboardRPCState extends DurableObject<Env> {
         const message = JSON.stringify({ type: 'PUSH', event, payload })
         for (const ws of this.ctx.getWebSockets()) {
             if (ws === excludeWs) continue
-            try { ws.send(message) } catch { /* closed socket, safe to ignore */ }
+            ws.send(message)
         }
     }
 
@@ -163,7 +163,7 @@ export class DashboardRPCState extends DurableObject<Env> {
      * Server-initiated push to all connected admin sessions of this Tenant.
      * Called by background Workers to notify the Dashboard of async events.
      */
-    async push(event: string, data: unknown): Promise<void> {
+    public async push(event: string, data: unknown): Promise<void> {
         this.broadcastEvent(event, data)
     }
 }

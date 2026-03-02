@@ -18,15 +18,16 @@
  */
 
 import { Hono } from 'hono'
+import { createAuthRouter } from '../../utils/router'
 import { apiKeyAuth } from '../../middlewares/apiKeyAuth'
 import { getProvider } from '../../payments/registry'
 
-const ordersRoute = new Hono<{ Bindings: Env }>()
+const ordersRoute = createAuthRouter()
 
 // ─── POST / — Checkout ───────────────────────────────────────
 
 ordersRoute.post('/', apiKeyAuth, async (c) => {
-    const tenantId = c.get('tenantId' as never) as string
+    const tenantId = c.get('tenantId') as string
 
     // ── 1. Parse and validate body ─────────────────────────
     type OrderItem = { product_id: string; quantity: number }
@@ -65,6 +66,15 @@ ordersRoute.post('/', apiKeyAuth, async (c) => {
 
     const customerId = typeof body.customer_id === 'string' ? body.customer_id : null
 
+    if (customerId) {
+        const customerExists = await c.env.DB.prepare(
+            `SELECT id FROM customers WHERE id = ? AND tenant_id = ?`
+        ).bind(customerId, tenantId).first()
+
+        if (!customerExists) {
+            return c.json({ error: 'customer_id is invalid or does not belong to this tenant' }, 400)
+        }
+    }
     // ── 2. Resolve gateway provider ────────────────────────
     let gateway
     try { gateway = getProvider(provider) }
@@ -174,17 +184,18 @@ ordersRoute.post('/', apiKeyAuth, async (c) => {
             c.env.DB.prepare(
                 `INSERT INTO tenant_transactions
                  (id, tenant_id, order_id, provider, provider_transaction_id,
-                  amount, payment_method, status, metadata, created_at)
-                 VALUES (?, ?, ?, ?, ?, ?, 'PIX', 'PENDING', ?, ?)`
+                  amount, payment_method, status, metadata, created_at, customer_id)
+                 VALUES (?, ?, ?, ?, ?, ?, 'PIX', 'PENDING', ?, ?, ?)`
             ).bind(
                 txnId, tenantId, orderId, provider,
                 chargeResult.providerChargeId,
-                totalAmount, metadataJson, now,
+                totalAmount, metadataJson, now, customerId
             ),
         ])
-    } catch (err) {
-        console.error('[orders] D1 batch failed:', err)
-        return c.json({ error: 'Failed to persist order — database error' }, 500)
+    } catch (err: any) {
+        console.error('DB Batch Error:', err.message)
+        // D1 transactional rollback happens automatically on batch failure
+        return c.json({ error: `Failed to persist order — database error: ${err.message}` }, 500)
     }
 
     // ── 9. Return checkout data ────────────────────────────
@@ -198,6 +209,7 @@ ordersRoute.post('/', apiKeyAuth, async (c) => {
             total_amount: totalAmount,
             status: 'PENDING',
             brCode: chargeResult.brCode,
+            paymentLinkUrl: chargeResult.paymentLinkUrl,
             items: items.map(i => ({
                 product_id: i.product_id,
                 quantity: i.quantity,
@@ -211,7 +223,7 @@ ordersRoute.post('/', apiKeyAuth, async (c) => {
 // ── GET /:id — Get order status (for polling fallback) ──────────
 
 ordersRoute.get('/:id', apiKeyAuth, async (c) => {
-    const tenantId = c.get('tenantId' as never) as string
+    const tenantId = c.get('tenantId') as string
     const orderId = c.req.param('id')
 
     const order = await c.env.DB.prepare(

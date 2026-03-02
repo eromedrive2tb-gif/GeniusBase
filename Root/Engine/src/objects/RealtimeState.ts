@@ -65,11 +65,7 @@ export class RealtimeState extends DurableObject<Env> {
             : JSON.stringify({ type: 'binary', size: (message as ArrayBuffer).byteLength })
 
         for (const socket of this.ctx.getWebSockets()) {
-            try {
-                socket.send(payload)
-            } catch {
-                // Socket may have closed between getWebSockets() and send() — safe to ignore
-            }
+            socket.send(payload)
         }
     }
 
@@ -106,13 +102,9 @@ export class RealtimeState extends DurableObject<Env> {
      *
      * @param message - JSON-serializable event string to broadcast
      */
-    async broadcast(message: string): Promise<void> {
+    public async broadcast(message: string): Promise<void> {
         for (const ws of this.ctx.getWebSockets()) {
-            try {
-                ws.send(message)
-            } catch {
-                // Closed sockets are automatically removed on next hibernation cycle
-            }
+            ws.send(message)
         }
     }
 }

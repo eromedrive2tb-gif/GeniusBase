@@ -234,6 +234,8 @@ const fetchOrders: RpcHandler = async ({ tenantId, env }) => {
              o.id,
              o.tenant_id,
              o.customer_id,
+             c.name AS customer_name,
+             c.email AS customer_email,
              o.status,
              o.total_amount,
              o.created_at,
@@ -247,9 +249,25 @@ const fetchOrders: RpcHandler = async ({ tenantId, env }) => {
              ) AS item_count
          FROM tenant_orders o
          LEFT JOIN tenant_transactions t ON t.order_id = o.id
+         LEFT JOIN customers c ON o.customer_id = c.id
          WHERE o.tenant_id = ?
          ORDER BY o.created_at DESC
          LIMIT 50`
+    ).bind(tenantId).all()
+    return results ?? []
+}
+
+// ── Transactions (Standalone) ─────────────────────────────────
+
+const fetchTransactions: RpcHandler = async ({ tenantId, env }) => {
+    const { results } = await env.DB.prepare(
+        `SELECT 
+             t.id, t.provider, t.amount, t.status, t.payer_name, t.payer_document, t.created_at,
+             t.customer_id, c.name AS customer_name, c.email AS customer_email
+         FROM tenant_transactions t
+         LEFT JOIN customers c ON t.customer_id = c.id
+         WHERE t.tenant_id = ? AND t.order_id IS NULL
+         ORDER BY t.created_at DESC LIMIT 50`
     ).bind(tenantId).all()
     return results ?? []
 }
@@ -282,4 +300,7 @@ export const commandRegistry: Record<string, RpcHandler> = {
 
     // E-commerce Orders (Phase 13+)
     FETCH_ORDERS: fetchOrders,
+
+    // Standalone Transactions (Phase 15+)
+    FETCH_TRANSACTIONS: fetchTransactions,
 }

@@ -21,6 +21,7 @@ const tabs: Tab[] = [
     { id: 'orders', label: 'Pedidos / Vendas', icon: '📦' },
     { id: 'core', label: 'APIs Principais', icon: '🔑' },
     { id: 'events', label: 'Eventos / Logs', icon: '⚡' },
+    { id: 'transactions', label: '💸 Transações Avulsas', icon: '💳' },
     { id: 'docs', label: 'Documentação', icon: '📖' },
     { id: 'gateways', label: 'Gateways de Pagamento', icon: '💳' },
 ]

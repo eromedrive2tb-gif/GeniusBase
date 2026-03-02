@@ -26,6 +26,7 @@ interface OpenPixCharge {
     status: string
     correlationID: string
     brCode?: string
+    paymentLinkUrl?: string
     paymentMethods?: {
         pix?: { brCode?: string }
     }
@@ -35,6 +36,7 @@ interface OpenPixCreateResponse {
     charge?: OpenPixCharge
     brCode?: string
     correlationID?: string
+    paymentLinkUrl?: string
     error?: string
 }
 
@@ -45,6 +47,10 @@ interface OpenPixWebhookBody {
     charge?: {
         correlationID?: string
         status?: string
+        customer?: {
+            name?: string
+            taxID?: { taxID?: string }
+        }
     }
 }
 
@@ -98,9 +104,13 @@ export class OpenPixProvider implements PaymentProvider {
             body.charge?.paymentMethods?.pix?.brCode ??
             null
 
+        // paymentLinkUrl may be top-level or inside charge
+        const paymentLinkUrl = body.paymentLinkUrl ?? body.charge?.paymentLinkUrl ?? undefined
+
         return {
             providerChargeId: body.charge?.correlationID ?? dto.correlationID,
             brCode,
+            paymentLinkUrl,
             status: body.charge?.status ?? 'ACTIVE',
             raw: body,
         }
@@ -116,8 +126,13 @@ export class OpenPixProvider implements PaymentProvider {
         const wb = body as OpenPixWebhookBody
         const providerChargeId = wb.charge?.correlationID ?? ''
 
+        const payer_name = wb.charge?.customer?.name
+        // OpenPix usually sends taxID nested: customer.taxID.taxID or just customer.taxID (string)
+        const rawTaxId = wb.charge?.customer?.taxID
+        const payer_document = typeof rawTaxId === 'object' ? rawTaxId?.taxID : rawTaxId
+
         if (wb.event === 'OPENPIX:CHARGE_COMPLETED') {
-            return { type: 'CHARGE_COMPLETED', providerChargeId, raw: body }
+            return { type: 'CHARGE_COMPLETED', providerChargeId, payer_name, payer_document, raw: body }
         }
 
         if (wb.event === 'OPENPIX:CHARGE_EXPIRED' || wb.event === 'OPENPIX:CHARGE_FAILED') {

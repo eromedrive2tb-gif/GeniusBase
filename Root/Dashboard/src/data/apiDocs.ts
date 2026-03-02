@@ -102,8 +102,20 @@ export const baasApiDocs: ApiDocEntry[] = [
     },
     {
         method: 'POST',
+        path: '/api/v1/transactions',
+        description: 'Cria uma Transação Avulsa (Standalone PIX), como doações, gorjetas ou cobranças diretas sem uso do carrênho e de produtos. Quando o pagamento for confirmado, o webhook salvará os dados do pagador no banco de dados e emitirá o evento TRANSACTION_COMPLETED via WebSocket, acompanhado do `payer_name` e `payer_document`.',
+        request: `{\n  "provider": "openpix",\n  "amount": 5000\n}\n\n// Escute o resultado via SDK:\ngb.channel(\'loja\')\n  .on(\'TRANSACTION_COMPLETED\', (txn) => {\n    console.log(\'Pagamento avulso recebido de:\', txn.payer_name)\n  })\n  .subscribe()`,
+        responses: [
+            { status: 201, label: 'Transação criada. Retorna transaction_id, provider_transaction_id e brCode (QR Pix).', color: 'var(--gb-green)' },
+            { status: 400, label: 'Bad Request: valor menor ou igual a 0 ou provider ausente.', color: 'var(--gb-amber)' },
+            { status: 401, label: 'Unauthorized: token ausente, expirado ou sem role "service".', color: 'var(--gb-red)' },
+            { status: 502, label: 'Bad Gateway: a gateway de pagamento retornou erro.', color: 'var(--gb-red)' }
+        ]
+    },
+    {
+        method: 'POST',
         path: '/api/v1/payments/webhooks/:provider',
-        description: 'Endpoint público chamado pela Gateway (ex: Woovi/OpenPix) após confirmar um pagamento. Configure este URL no painel da sua gateway. O GeniusBase processa o evento, atualiza o pedido no banco e emite ORDER_PAID via WebSocket para o app cliente e para a Dashboard.',
+        description: 'Endpoint público chamado pela Gateway após confirmar um pagamento. O GeniusBase processa o evento e atualiza a transação para COMPLETED (salvando nome e doc do pagador). Se for um pedido de loja, emite ORDER_PAID. De qualquer forma, sempre emite TRANSACTION_COMPLETED via WebSocket. Tudo automático.',
         request: `// ⚠️ Configure na Woovi/OpenPix como URL de Webhook:\nhttps://SEU_WORKER.workers.dev/api/v1/payments/webhooks/openpix\n\n// O payload enviado pela Woovi (automático):\n{\n  "event": "OPENPIX:CHARGE_COMPLETED",\n  "charge": {\n    "correlationID": "ord_abc123",\n    "status": "COMPLETED"\n  }\n}`,
         responses: [
             { status: 200, label: 'OK: evento processado. Pedido atualizado para PAID. ORDER_PAID broadcast enviado.', color: 'var(--gb-green)' }
@@ -133,8 +145,8 @@ export const webhookGuide: WebhookStep[] = [
     },
     {
         icon: '3️⃣',
-        title: 'Escute ORDER_PAID no seu frontend via SDK',
-        description: 'No seu app (React, Vue, Svelte, JS puro), use o SDK para escutar o evento em tempo real. O GeniusBase entrega o evento via WebSocket assim que o banco é atualizado.',
-        code: `gb.channel('loja')\n  .on('ORDER_PAID', (pedido) => {\n    mostrarTelaDeConfirmacao(pedido)\n    liberarAcessoAoConteudo(pedido.order_id)\n  })\n  .subscribe()`,
+        title: 'Escute os Eventos no seu frontend via SDK',
+        description: 'No seu app, use o SDK para escutar os eventos em tempo real. O GeniusBase entrega o evento via WebSocket assim que o banco é atualizado.',
+        code: `gb.channel('loja')\n  .on('ORDER_PAID', (pedido) => {\n    // Para checkout e-commerce (carrinho)\n    liberarAcessoAoConteudo(pedido.order_id)\n  })\n  .on('TRANSACTION_COMPLETED', (txn) => {\n    // Para PIX avulsos, doações...\n    agradecerPagador(txn.payer_name)\n  })\n  .subscribe()`,
     },
 ]

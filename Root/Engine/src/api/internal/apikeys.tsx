@@ -10,6 +10,7 @@
  */
 
 import { Hono } from 'hono'
+import { createAuthRouter } from '../../utils/router'
 import { adminAuth } from '../../middlewares/adminAuth'
 import { sign } from 'hono/jwt'
 import { emitAuthEvent, extractRequestMeta } from '../../events/authEvents'
@@ -17,7 +18,7 @@ import { emitAuthEvent, extractRequestMeta } from '../../events/authEvents'
 // Service tokens are long-lived: 1 year
 const SERVICE_TOKEN_TTL = 365 * 24 * 60 * 60
 
-const apiKeysRoute = new Hono<{ Bindings: Env }>()
+const apiKeysRoute = createAuthRouter()
 
 apiKeysRoute.use('*', adminAuth)
 
@@ -27,8 +28,8 @@ apiKeysRoute.use('*', adminAuth)
  * Returns an HTML fragment for HTMX injection into #api-key-result.
  */
 apiKeysRoute.post('/', async (c) => {
-    const tenantId = c.get('tenantId' as never) as string
-    const userId = c.get('userId' as never) as string
+    const tenantId = c.get('tenantId') as string
+    const userId = c.get('userId') as string
 
     const secret = c.env.ENDUSER_JWT_SECRET
     if (!secret) {

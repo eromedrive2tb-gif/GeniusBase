@@ -16,7 +16,7 @@ import type { AuthEvent, AuthEventType } from '../types/auth'
  * @param event - The auth event details
  */
 export function emitAuthEvent(
-    c: Context<{ Bindings: Env }>,
+    c: Context<any>,
     event: Omit<AuthEvent, 'id' | 'created_at'>
 ): void {
     const id = crypto.randomUUID()
@@ -35,7 +35,7 @@ export function emitAuthEvent(
             event.metadata ? JSON.stringify(event.metadata) : null
         )
         .run()
-        .catch((err) => {
+        .catch((err: unknown) => {
             console.error(`[EDA] Failed to write audit event ${event.event_type}:`, err)
         })
 
@@ -46,7 +46,7 @@ export function emitAuthEvent(
 /**
  * Helper to extract request metadata for audit events.
  */
-export function extractRequestMeta(c: Context): {
+export function extractRequestMeta(c: Context<any>): {
     ip_address: string | null
     user_agent: string | null
 } {
