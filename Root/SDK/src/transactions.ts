@@ -55,11 +55,14 @@ export class TransactionsClient {
      */
     async create(opts: CreateTransactionOptions): Promise<TransactionResult> {
         try {
+            const idempotencyKey = (globalThis as any).crypto?.randomUUID ? (globalThis as any).crypto.randomUUID() : `gb-fallback-${Date.now()}-${Math.random()}`
+
             const res = await fetch(`${this.baseUrl}/api/v1/transactions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${this.apiKey}`,
+                    'Idempotency-Key': idempotencyKey,
                 },
                 body: JSON.stringify(opts),
             })

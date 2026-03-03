@@ -12,6 +12,8 @@
  *   - Chama: ctx.broadcast(event, payload) → Domain Event para sessões peer
  */
 
+import { WebhookDispatcher } from '../domain/events/WebhookDispatcher'
+
 export interface RpcContext {
     payload: Record<string, unknown>
     tenantId: string
@@ -69,6 +71,9 @@ const createUser: RpcHandler = async ({ payload, tenantId, env, broadcast }) => 
 
     const record = { id, tenant_id: tenantId, email, created_at: now }
     broadcast('USER_CREATED', record)
+
+    try { WebhookDispatcher.dispatch(env, tenantId, 'END_USER_CREATED_BY_ADMIN', record) } catch { }
+
     return record
 }
 
@@ -87,6 +92,9 @@ const deleteUser: RpcHandler = async ({ payload, tenantId, env, broadcast }) => 
     ).bind(id, tenantId).run()
 
     broadcast('USER_DELETED', { id })
+
+    try { WebhookDispatcher.dispatch(env, tenantId, 'END_USER_DELETED_BY_ADMIN', { id }) } catch { }
+
     return { deleted: true, id }
 }
 
@@ -117,6 +125,9 @@ const createCustomer: RpcHandler = async ({ payload, tenantId, env, broadcast })
 
     const record = { id, tenant_id: tenantId, name, email: email || null, created_at: now }
     broadcast('CUSTOMER_CREATED', record)
+
+    try { WebhookDispatcher.dispatch(env, tenantId, 'CUSTOMER_CREATED', record) } catch { }
+
     return record
 }
 
@@ -150,6 +161,9 @@ const createProduct: RpcHandler = async ({ payload, tenantId, env, broadcast }) 
 
     const record = { id, tenant_id: tenantId, name, price, stock, created_at: now }
     broadcast('PRODUCT_CREATED', record)
+
+    try { WebhookDispatcher.dispatch(env, tenantId, 'PRODUCT_CREATED', record) } catch { }
+
     return record
 }
 
@@ -254,7 +268,11 @@ const saveGateway: RpcHandler = async ({ payload, tenantId, env }) => {
              updated_at  = excluded.updated_at`
     ).bind(id, tenantId, provider, credentialsStr, now).run()
 
-    return { provider, is_active: true, updated_at: now }
+    const record = { provider, is_active: true, updated_at: now }
+
+    try { WebhookDispatcher.dispatch(env, tenantId, 'GATEWAY_CONFIGURED', record) } catch { }
+
+    return record
 }
 
 // ── Orders (E-commerce) ───────────────────────────────────────
@@ -346,7 +364,157 @@ const deleteFile: RpcHandler = async ({ payload, tenantId, env, broadcast }) => 
     ).bind(id, tenantId).run()
 
     broadcast('FILE_DELETED', { id })
+
+    try { WebhookDispatcher.dispatch(env, tenantId, 'FILE_DELETED', { id }) } catch { }
+
     return { deleted: true, id }
+}
+
+// ── Webhooks (Advanced EDA Phase 29.5) ─────────────────────────
+
+const fetchWebhooks: RpcHandler = async ({ tenantId, env }) => {
+    const { results } = await env.DB.prepare(
+        'SELECT id, url, events, created_at FROM tenant_webhooks WHERE tenant_id = ? ORDER BY created_at DESC'
+    ).bind(tenantId).all()
+    return results ?? []
+}
+
+const addWebhook: RpcHandler = async ({ payload, tenantId, env }) => {
+    const url = (typeof payload['url'] === 'string' ? payload['url'] : '').trim()
+    const events = Array.isArray(payload['events']) ? payload['events'] : ['*']
+
+    if (!url || !url.startsWith('https://')) throw new Error('A URL do webhook é obrigatória e deve ser segura (HTTPS).')
+    if (events.length === 0) throw new Error('Selecione pelo menos um evento.')
+
+    const id = `wh_${crypto.randomUUID().replace(/-/g, '')}`
+    const eventsJson = JSON.stringify(events)
+
+    await env.DB.prepare(`
+        INSERT INTO tenant_webhooks (id, tenant_id, url, events) 
+        VALUES (?, ?, ?, ?)
+    `).bind(id, tenantId, url, eventsJson).run()
+
+    return { success: true, id, url, events: eventsJson }
+}
+
+const deleteWebhook: RpcHandler = async ({ payload, tenantId, env }) => {
+    const id = (typeof payload['id'] === 'string' ? payload['id'] : '').trim()
+    if (!id) throw new Error('ID do webhook é obrigatório.')
+
+    await env.DB.prepare(`DELETE FROM tenant_webhooks WHERE id = ? AND tenant_id = ?`)
+        .bind(id, tenantId).run()
+
+    return { deleted: true, id }
+}
+
+const testWebhook: RpcHandler = async ({ payload, tenantId }) => {
+    const url = (typeof payload['url'] === 'string' ? payload['url'] : '').trim()
+    if (!url) throw new Error('URL inválida para teste.')
+
+    try {
+        const testRes = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-GeniusBase-Event': 'TEST_EVENT',
+                'User-Agent': 'GeniusBase-Webhook/1.0'
+            },
+            body: JSON.stringify({
+                event: 'TEST_EVENT',
+                tenant_id: tenantId,
+                timestamp: new Date().toISOString(),
+                payload: { message: 'GeniusBase Webhook Test' }
+            })
+        })
+        return { success: testRes.ok, status: testRes.status }
+    } catch (err: any) {
+        throw new Error(`Falha ao disparar Webhook: ${err.message}`)
+    }
+}
+
+const testAllWebhookEvents: RpcHandler = async ({ payload, tenantId, env }) => {
+    const url = (typeof payload['url'] === 'string' ? payload['url'] : '').trim()
+    if (!url) throw new Error('URL inválida para teste.')
+
+    // 1. Fetch real data samples to make tests ultra-realistic
+    const [dbProd, dbCus, dbUsr, dbTxn, dbOrd, dbFile] = await Promise.all([
+        env.DB.prepare(`SELECT * FROM products WHERE tenant_id = ? AND deleted_at IS NULL LIMIT 1`).bind(tenantId).first<any>(),
+        env.DB.prepare(`SELECT * FROM customers WHERE tenant_id = ? AND deleted_at IS NULL LIMIT 1`).bind(tenantId).first<any>(),
+        env.DB.prepare(`SELECT * FROM tenant_users WHERE tenant_id = ? LIMIT 1`).bind(tenantId).first<any>(),
+        env.DB.prepare(`SELECT * FROM tenant_transactions WHERE tenant_id = ? AND order_id IS NULL LIMIT 1`).bind(tenantId).first<any>(),
+        env.DB.prepare(`SELECT * FROM tenant_orders WHERE tenant_id = ? LIMIT 1`).bind(tenantId).first<any>(),
+        env.DB.prepare(`SELECT * FROM tenant_files WHERE tenant_id = ? LIMIT 1`).bind(tenantId).first<any>(),
+    ])
+
+    // 2. Build Hybrid Payloads (Real if exists, Mock if absent)
+    const prodPayload = dbProd || { id: 'prod_mock123', name: 'Produto Sandbox', price: 9900, stock: 10 }
+    const cusPayload = dbCus || { id: 'cus_mock123', name: 'João Sandbox', email: 'joao@sandbox.com' }
+    const usrPayload = dbUsr || { id: 'usr_mock123', email: 'user@sandbox.com' }
+    const filePayload = dbFile || { id: 'file_mock123', filename: 'sandbox.pdf', size_bytes: 102400 }
+
+    const txnPayload = dbTxn ? {
+        transaction_id: dbTxn.id, amount: dbTxn.amount, status: dbTxn.status, created_at: dbTxn.created_at
+    } : { transaction_id: 'txn_mock123', amount: 5000, status: 'PENDING' }
+
+    const ordPayload = dbOrd ? {
+        order_id: dbOrd.id, total_amount: dbOrd.total_amount, status: dbOrd.status, created_at: dbOrd.created_at
+    } : { order_id: 'ord_mock123', total_amount: 15000, status: 'PENDING' }
+
+    const eventsToTest = [
+        { name: 'CUSTOM_EVENT_RECEIVED', payload: { source: 'dashboard_test', message: 'Hello EDA!' } },
+        { name: 'ORDER_CREATED', payload: { ...ordPayload, status: 'PENDING' } },
+        { name: 'ORDER_PAID', payload: { ...ordPayload, status: 'PAID' } },
+        { name: 'ORDER_EXPIRED', payload: { ...ordPayload, status: 'EXPIRED' } },
+        { name: 'TRANSACTION_CREATED', payload: { ...txnPayload, status: 'PENDING' } },
+        { name: 'TRANSACTION_COMPLETED', payload: { ...txnPayload, status: 'COMPLETED' } },
+        { name: 'TRANSACTION_EXPIRED', payload: { ...txnPayload, status: 'EXPIRED' } },
+        { name: 'CUSTOMER_CREATED', payload: cusPayload },
+        { name: 'CUSTOMER_UPDATED', payload: { ...cusPayload, name: cusPayload.name + ' (Editado)' } },
+        { name: 'CUSTOMER_DELETED', payload: { id: cusPayload.id } },
+        { name: 'PRODUCT_CREATED', payload: prodPayload },
+        { name: 'PRODUCT_UPDATED', payload: { ...prodPayload, price: Number(prodPayload.price || 0) + 100 } },
+        { name: 'PRODUCT_DELETED', payload: { id: prodPayload.id } },
+        { name: 'PRODUCT_OUT_OF_STOCK', payload: { product_id: prodPayload.id, status: 'OUT_OF_STOCK' } },
+        { name: 'END_USER_REGISTERED', payload: { id: usrPayload.id, email: usrPayload.email } },
+        { name: 'END_USER_LOGGED_IN', payload: { id: usrPayload.id, email: usrPayload.email } },
+        { name: 'FILE_UPLOADED', payload: filePayload },
+        { name: 'FILE_DELETED', payload: { id: filePayload.id } }
+    ]
+
+    let successCount = 0
+    const results = []
+
+    // 3. Fire them sequentially towards the target URL exactly as WebhookDispatcher would
+    for (const testEvent of eventsToTest) {
+        try {
+            const testRes = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-GeniusBase-Event': testEvent.name,
+                    'User-Agent': 'GeniusBase-Webhook/1.0'
+                },
+                body: JSON.stringify({
+                    event: testEvent.name,
+                    tenant_id: tenantId,
+                    timestamp: new Date().toISOString(),
+                    payload: testEvent.payload,
+                    is_test_mode: true
+                })
+            })
+            if (testRes.ok) successCount++
+            results.push({ event: testEvent.name, status: testRes.status })
+        } catch (err: any) {
+            results.push({ event: testEvent.name, error: err.message })
+        }
+    }
+
+    return {
+        success: successCount > 0,
+        successCount,
+        total: eventsToTest.length,
+        results
+    }
 }
 
 // ── Command Registry ────────────────────────────────────────────────
@@ -385,4 +553,11 @@ export const commandRegistry: Record<string, RpcHandler> = {
     // Storage Files (Phase 17+)
     FETCH_FILES: fetchFiles,
     DELETE_FILE: deleteFile,
+
+    // Webhooks (Phase 29.5+)
+    FETCH_WEBHOOKS: fetchWebhooks,
+    ADD_WEBHOOK: addWebhook,
+    DELETE_WEBHOOK: deleteWebhook,
+    TEST_WEBHOOK: testWebhook,
+    TEST_ALL_WEBHOOK_EVENTS: testAllWebhookEvents,
 }

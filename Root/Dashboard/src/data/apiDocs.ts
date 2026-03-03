@@ -67,6 +67,24 @@ export const baasApiDocs: ApiDocEntry[] = [
         responses: []
     },
     {
+        method: 'PATCH',
+        path: '/api/v1/products/:id',
+        description: 'Atualiza parcialmente as informações de um produto específico usando o SDK fluente.',
+        request: `// Equivalente SDK (Chainable Builder):\nawait gb.from('products')\n  .update({ price: 1000 })\n  .eq('id', 'prod_123')\n\n// HTTP Nativo:\n{\n  "price": 1000\n}`,
+        responses: [
+            { status: 200, label: 'OK: Produto atualizado com sucesso.', color: 'var(--gb-green)' }
+        ]
+    },
+    {
+        method: 'DELETE',
+        path: '/api/v1/customers/:id',
+        description: 'Realiza um Soft Delete (inativação) de um cliente preservando a integridade referencial.',
+        request: `// Equivalente SDK (Chainable Builder):\nawait gb.from('customers')\n  .delete()\n  .eq('id', 'cus_123')\n\n// HTTP Nativo:\n// Sem payload, chame o arquivo enviando DELETE restrito.`,
+        responses: [
+            { status: 200, label: 'OK: Cliente inativado com sucesso.', color: 'var(--gb-green)' }
+        ]
+    },
+    {
         method: 'GET',
         path: '/api/v1/realtime',
         description: 'Abre um túnel WebSocket público. Conecte-se passando a Service API Key (ou End-User JWT) como query param `?token=`. O servidor enviará broadcasts de eventos (ex: PRODUCT_CREATED) para todos os clientes conectados deste Tenant.',

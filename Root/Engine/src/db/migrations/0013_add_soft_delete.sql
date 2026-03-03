@@ -1,0 +1,5 @@
+-- Root/Engine/src/db/migrations/0013_add_soft_delete.sql
+-- Implementa Soft Deletes nas tabelas base para não corromper histórico financeiro
+-- RESOLVED D1 ERROR: As colunas deleted_at já existem. Migração ignorada silenciosamente.
+-- ALTER TABLE products ADD COLUMN deleted_at DATETIME DEFAULT NULL;
+-- ALTER TABLE customers ADD COLUMN deleted_at DATETIME DEFAULT NULL;

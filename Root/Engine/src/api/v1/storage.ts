@@ -11,6 +11,7 @@
 import { Hono } from 'hono'
 import { createAuthRouter } from '../../utils/router'
 import { apiKeyAuth } from '../../middlewares/apiKeyAuth'
+import { WebhookDispatcher } from '../../domain/events/WebhookDispatcher'
 
 const storageRoute = createAuthRouter()
 
@@ -36,6 +37,18 @@ export const handleStorageUpload = async (c: any) => {
     const filename = file.name
     const sizeBytes = file.size
     const mimeType = file.type || 'application/octet-stream'
+
+    // Mission 5: Storage Shield
+    const MAX_SIZE = 5 * 1024 * 1024 // 5MB
+    if (sizeBytes > MAX_SIZE) {
+        return c.json({ error: 'File size exceeds 5MB limit' }, 400)
+    }
+
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+    if (!allowedMimeTypes.includes(mimeType)) {
+        return c.json({ error: 'Unsupported Media Type' }, 415)
+    }
+
     // Isolamento R2: O bucketPath garante que o tenant_id seja o prefixo da pasta.
     const bucketPath = `${tenantId}/${id}-${filename}`
 
@@ -68,17 +81,22 @@ export const handleStorageUpload = async (c: any) => {
         return c.json({ error: 'Failed to persist metadata in database' }, 500)
     }
 
-    return c.json({
-        success: true,
-        data: {
-            id,
-            filename,
-            size_bytes: sizeBytes,
-            public_url: publicUrl,
-            mime_type: mimeType,
-            created_at: now
-        }
-    }, 201)
+    const record = {
+        id,
+        filename,
+        size_bytes: sizeBytes,
+        public_url: publicUrl,
+        mime_type: mimeType,
+        created_at: now
+    }
+
+    try {
+        c.executionCtx.waitUntil(
+            WebhookDispatcher.dispatch(c.env, tenantId, 'FILE_UPLOADED', record)
+        )
+    } catch { }
+
+    return c.json({ success: true, data: record }, 201)
 }
 
 // Middleware para as rotas que precisam de Auth (Upload)

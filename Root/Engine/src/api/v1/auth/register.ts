@@ -10,6 +10,7 @@ import { Hono } from 'hono'
 import { createAuthRouter } from '../../../utils/router'
 import { hashPassword } from '../../../utils/crypto'
 import { AuthRegisterSchema } from '../../../domain/schemas'
+import { WebhookDispatcher } from '../../../domain/events/WebhookDispatcher'
 
 const endUserRegisterRoute = createAuthRouter()
 
@@ -59,16 +60,19 @@ endUserRegisterRoute.post('/', async (c) => {
         ])
 
         // Não retorna a senha no payload
-        return c.json(
-            {
-                data: {
-                    id,
-                    email,
-                    created_at: now,
-                },
-            },
-            201
-        )
+        const record = {
+            id,
+            email,
+            created_at: now,
+        }
+
+        try {
+            c.executionCtx.waitUntil(
+                WebhookDispatcher.dispatch(c.env, tenantId, 'END_USER_REGISTERED', record)
+            )
+        } catch { }
+
+        return c.json({ data: record }, 201)
     } catch (e: any) {
         return c.json({ error: 'Database error', details: e.message }, 500)
     }

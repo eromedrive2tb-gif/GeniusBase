@@ -26,6 +26,7 @@ const tabs: Tab[] = [
     { id: 'transactions', label: '💸 Transações Avulsas', icon: '💳' },
     { id: 'docs', label: 'Documentação', icon: '📖' },
     { id: 'gateways', label: 'Gateways de Pagamento', icon: '💳' },
+    { id: 'settings', label: 'Configurações', icon: '⚙️' },
 ]
 
 export const DashboardTabs = () => {

@@ -11,6 +11,7 @@ import { createAuthRouter } from '../../../utils/router'
 import { verifyPassword } from '../../../utils/crypto'
 import { generateToken } from '../../../utils/token'
 import { AuthLoginSchema } from '../../../domain/schemas'
+import { WebhookDispatcher } from '../../../domain/events/WebhookDispatcher'
 
 const endUserLoginRoute = createAuthRouter()
 
@@ -63,6 +64,12 @@ endUserLoginRoute.post('/', async (c) => {
         tenant_id: tenantId,
         created_at: new Date().toISOString(),
     }), { expirationTtl: 86400 })
+
+    try {
+        c.executionCtx.waitUntil(
+            WebhookDispatcher.dispatch(c.env, tenantId, 'END_USER_LOGGED_IN', { id: user.id, email })
+        )
+    } catch { }
 
     return c.json({
         message: 'Login successful',

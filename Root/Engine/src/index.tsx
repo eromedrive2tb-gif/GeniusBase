@@ -29,6 +29,7 @@ import { internalDashboardRoute } from './api/internal/dashboard'
 import { apiKeysRoute } from './api/internal/apikeys'
 import { internalRealtimeRoute } from './api/internal/realtime'
 import { internalStorageRoute } from './api/internal/storage'
+import { WebhookDispatcher } from './domain/events/WebhookDispatcher'
 import { DomainError } from './domain/errors'
 
 // CSS imports (raw text for static serving)
@@ -136,7 +137,7 @@ app.route('/api/internal/storage', internalStorageRoute)
 app.use('/api/v1/*', cors({
     origin: '*',
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Authorization', 'Content-Type'],
+    allowHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key', 'X-GeniusBase-Event'],
     exposeHeaders: ['Content-Type'],
     maxAge: 86400,
 }))
@@ -210,9 +211,37 @@ export default {
                         `UPDATE tenant_orders SET status = 'EXPIRED', updated_at = ? WHERE id = ?`
                     ).bind(new Date().toISOString(), order.id).run()
                 }
+
+                // Disparar Webhook OMNI
+                ctx.waitUntil(WebhookDispatcher.dispatch(env, order.tenant_id, 'ORDER_EXPIRED', {
+                    order_id: order.id,
+                    status: 'EXPIRED',
+                    timestamp: new Date().toISOString()
+                }))
             }
+
+            // Also expire Standalone Transactions
+            const { results: expiredTxns } = await env.DB.prepare(
+                `SELECT id, tenant_id FROM tenant_transactions WHERE status = 'PENDING' AND created_at < ? AND order_id IS NULL`
+            ).bind(oneHourAgo).all<{ id: string; tenant_id: string }>()
+
+            if (expiredTxns && expiredTxns.length > 0) {
+                for (const txn of expiredTxns) {
+                    await env.DB.prepare(
+                        `UPDATE tenant_transactions SET status = 'EXPIRED' WHERE id = ?`
+                    ).bind(txn.id).run()
+
+                    ctx.waitUntil(WebhookDispatcher.dispatch(env, txn.tenant_id, 'TRANSACTION_EXPIRED', {
+                        transaction_id: txn.id,
+                        status: 'EXPIRED',
+                        timestamp: new Date().toISOString()
+                    }))
+                }
+                console.log(`[Cron] Expired ${expiredTxns.length} standalone transactions.`)
+            }
+
         } catch (error) {
-            console.error('[Cron] Error processing expired orders:', error)
+            console.error('[Cron] Error processing expired orders/transactions:', error)
         }
     }
 }

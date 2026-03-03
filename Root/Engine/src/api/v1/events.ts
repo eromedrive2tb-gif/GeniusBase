@@ -20,6 +20,7 @@
 import { Hono } from 'hono'
 import { createAuthRouter } from '../../utils/router'
 import { apiKeyAuth } from '../../middlewares/apiKeyAuth'
+import { WebhookDispatcher } from '../../domain/events/WebhookDispatcher'
 
 const eventsRoute = createAuthRouter()
 
@@ -78,6 +79,13 @@ eventsRoute.post('/', async (c) => {
         // Non-fatal: the admin may not be online. Log and continue.
         console.warn('[events] Dashboard push failed (no active sessions?):', err)
     }
+
+    // ── OMNIPRESENT EDA: Dispatch to external webhooks ──
+    try {
+        c.executionCtx.waitUntil(
+            WebhookDispatcher.dispatch(c.env, tenantId, name, payloadObj)
+        )
+    } catch (err) { }
 
     return c.json({ success: true, data: record }, 201)
 })

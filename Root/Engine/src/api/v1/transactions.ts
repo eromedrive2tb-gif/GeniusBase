@@ -9,6 +9,7 @@ import { GatewayRegistry } from '../../domain/gateways/GatewayRegistry'
 import { TransactionRepository } from '../../domain/repositories/TransactionRepository'
 import { CustomerRepository } from '../../domain/repositories/CustomerRepository'
 import { TransactionCreateSchema } from '../../domain/schemas'
+import { WebhookDispatcher } from '../../domain/events/WebhookDispatcher'
 import { BadRequestError, DomainError, RateLimitError, UnprocessableEntityError } from '../../domain/errors'
 
 const transactionsRoute = createAuthRouter()
@@ -30,6 +31,14 @@ transactionsRoute.post('/', apiKeyAuth, async (c) => {
             throw new RateLimitError('Rate limit exceeded for anonymous checkout (max 5/hour)')
         }
         await c.env.KV_CACHE.put(kvKey, (count + 1).toString(), { expirationTtl: 3600 })
+    }
+
+    // ── 0.5 Idempotency Key ────────────────────────────────
+    const idempotencyKey = c.req.header('Idempotency-Key')
+    if (idempotencyKey) {
+        const kvKey = `idemp:txn:${tenantId}:${idempotencyKey}`
+        const existing = await c.env.KV_CACHE.get(kvKey)
+        if (existing) return c.json(JSON.parse(existing), 200)
     }
 
     const rawBody = await c.req.json()
@@ -89,7 +98,7 @@ transactionsRoute.post('/', apiKeyAuth, async (c) => {
         customerId
     })
 
-    return c.json({
+    const responsePayload = {
         success: true,
         data: {
             transaction_id: transactionId,
@@ -100,7 +109,16 @@ transactionsRoute.post('/', apiKeyAuth, async (c) => {
             status: 'PENDING',
             created_at: new Date().toISOString()
         }
-    }, 201)
+    }
+
+    c.executionCtx.waitUntil(WebhookDispatcher.dispatch(c.env, tenantId, 'TRANSACTION_CREATED', responsePayload.data))
+
+    if (idempotencyKey) {
+        const kvKey = `idemp:txn:${tenantId}:${idempotencyKey}`
+        await c.env.KV_CACHE.put(kvKey, JSON.stringify(responsePayload), { expirationTtl: 86400 }) // 24 hours
+    }
+
+    return c.json(responsePayload, 201)
 })
 
 export { transactionsRoute }

@@ -9,6 +9,7 @@ import { GatewayRegistry } from '../../domain/gateways/GatewayRegistry'
 import { OrderRepository } from '../../domain/repositories/OrderRepository'
 import { CustomerRepository } from '../../domain/repositories/CustomerRepository'
 import { OrderCreateSchema } from '../../domain/schemas'
+import { WebhookDispatcher } from '../../domain/events/WebhookDispatcher'
 import { BadRequestError, DomainError, NotFoundError, RateLimitError, UnprocessableEntityError } from '../../domain/errors'
 
 const ordersRoute = createAuthRouter()
@@ -30,6 +31,14 @@ ordersRoute.post('/', apiKeyAuth, async (c) => {
             throw new RateLimitError('Rate limit exceeded for anonymous checkout (max 5/hour)')
         }
         await c.env.KV_CACHE.put(kvKey, (count + 1).toString(), { expirationTtl: 3600 })
+    }
+
+    // ── 0.5 Idempotency Key ────────────────────────────────
+    const idempotencyKey = c.req.header('Idempotency-Key')
+    if (idempotencyKey) {
+        const kvKey = `idemp:order:${tenantId}:${idempotencyKey}`
+        const existing = await c.env.KV_CACHE.get(kvKey)
+        if (existing) return c.json(JSON.parse(existing), 200)
     }
 
     // ── 1. Parse and validate body ─────────────────────────
@@ -62,7 +71,7 @@ ordersRoute.post('/', apiKeyAuth, async (c) => {
     }
 
     // ── 3. Fetch prices and validate stock server-side ──
-    const priceMap = await OrderRepository.validateStockAndGetPrices(c.env.DB, tenantId, body.items)
+    const { priceMap, stockMap } = await OrderRepository.validateStockAndGetPrices(c.env.DB, tenantId, body.items)
 
     // ── 4. Calculate total amount ─────────
     let totalAmount = 0
@@ -96,7 +105,7 @@ ordersRoute.post('/', apiKeyAuth, async (c) => {
     })
 
     // ── 8. Return checkout data ────────────────────────────
-    return c.json({
+    const responsePayload = {
         success: true,
         data: {
             order_id: orderId,
@@ -114,7 +123,30 @@ ordersRoute.post('/', apiKeyAuth, async (c) => {
             })),
             created_at: new Date().toISOString(),
         },
-    }, 201)
+    }
+
+    // ── 9. Módulo EDA Webhooks OMNI ─────────────────────────
+    c.executionCtx.waitUntil(WebhookDispatcher.dispatch(c.env, tenantId, 'ORDER_CREATED', responsePayload.data))
+
+    // Detectar e despachar Esgotamento de Estoque (Out of stock) de forma passiva nas sombras:
+    for (const item of body.items) {
+        const stockBefore = stockMap.get(item.product_id) || 0
+        if (stockBefore - item.quantity === 0) {
+            c.executionCtx.waitUntil(WebhookDispatcher.dispatch(c.env, tenantId, 'PRODUCT_OUT_OF_STOCK', {
+                product_id: item.product_id,
+                order_trigger_id: orderId,
+                status: 'OUT_OF_STOCK',
+                timestamp: new Date().toISOString()
+            }))
+        }
+    }
+
+    if (idempotencyKey) {
+        const kvKey = `idemp:order:${tenantId}:${idempotencyKey}`
+        await c.env.KV_CACHE.put(kvKey, JSON.stringify(responsePayload), { expirationTtl: 86400 }) // 24 hours
+    }
+
+    return c.json(responsePayload, 201)
 })
 
 // ── GET /:id — Get order status (for polling fallback) ──────────

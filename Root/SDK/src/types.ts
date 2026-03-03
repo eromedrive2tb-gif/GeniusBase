@@ -1,19 +1,19 @@
-export interface Product {
+export interface Product<Meta = Record<string, any>> {
     id: string
     tenant_id: string
     name: string
     price: number
     stock: number
-    metadata?: Record<string, any>
+    metadata?: Meta
     created_at: number
 }
 
-export interface Customer {
+export interface Customer<Meta = Record<string, any>> {
     id: string
     tenant_id: string
     name: string
     email?: string | null
     document?: string | null
-    metadata?: Record<string, any>
+    metadata?: Meta
     created_at: number
 }

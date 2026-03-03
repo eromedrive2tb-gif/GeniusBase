@@ -22,17 +22,19 @@ export interface CreateOrderParams {
 export class OrderRepository {
     static async validateStockAndGetPrices(db: D1Database, tenantId: string, items: OrderItem[]) {
         const priceMap = new Map<string, number>()
+        const stockMap = new Map<string, number>()
         for (const item of items) {
             const row = await db.prepare(
-                `SELECT id, price, stock FROM products WHERE id = ? AND tenant_id = ?`
+                `SELECT id, price, stock FROM products WHERE id = ? AND tenant_id = ? AND deleted_at IS NULL`
             ).bind(item.product_id, tenantId).first<{ id: string; price: number; stock: number }>()
 
-            if (!row) throw new NotFoundError(`Product "${item.product_id}" not found`, 'PRODUCT_NOT_FOUND')
+            if (!row) throw new NotFoundError(`Product "${item.product_id}" not found or unavailable`, 'PRODUCT_NOT_FOUND')
             if (row.stock < item.quantity) throw new BadRequestError(`Out of stock: ${row.id}`, 'OUT_OF_STOCK')
 
             priceMap.set(item.product_id, row.price)
+            stockMap.set(item.product_id, row.stock)
         }
-        return priceMap
+        return { priceMap, stockMap }
     }
 
     static async createOrderBatch(db: D1Database, params: {

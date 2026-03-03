@@ -3,10 +3,11 @@
  * Root/Engine/src/domain/events/PaymentEventHandler.ts
  */
 
-import { D1Database } from '@cloudflare/workers-types'
+import { D1Database, ExecutionContext } from '@cloudflare/workers-types'
 import { TransactionRepository } from '../repositories/TransactionRepository'
 import { OrderRepository } from '../repositories/OrderRepository'
 import { CustomerRepository } from '../repositories/CustomerRepository'
+import { WebhookDispatcher } from './WebhookDispatcher'
 
 export interface PayerData {
     name?: string
@@ -15,7 +16,7 @@ export interface PayerData {
 }
 
 export class PaymentEventHandler {
-    static async processSuccess(env: any, providerChargeId: string, payerData: PayerData, providerName: string) {
+    static async processSuccess(env: any, providerChargeId: string, payerData: PayerData, providerName: string, ctx?: ExecutionContext) {
         const db: D1Database = env.DB
         const now = new Date().toISOString()
 
@@ -58,10 +59,10 @@ export class PaymentEventHandler {
         await db.batch(statements)
 
         // 4. Broadcast Events
-        await this.broadcastEvents(env, txn, payerData, providerName, providerChargeId, finalCustomerId, now)
+        await this.broadcastEvents(env, txn, payerData, providerName, providerChargeId, finalCustomerId, now, ctx)
     }
 
-    private static async broadcastEvents(env: any, txn: any, payerData: PayerData, providerName: string, providerChargeId: string, customerId: string | null, now: string) {
+    private static async broadcastEvents(env: any, txn: any, payerData: PayerData, providerName: string, providerChargeId: string, customerId: string | null, now: string, ctx?: ExecutionContext) {
         const trxPayload = {
             transaction_id: txn.id,
             tenant_id: txn.tenant_id,
@@ -112,6 +113,22 @@ export class PaymentEventHandler {
             try {
                 const dashboardId = env.DASHBOARD_RPC_STATE.idFromName(txn.tenant_id)
                 await env.DASHBOARD_RPC_STATE.get(dashboardId).push('ORDER_PAID', orderPayload)
+            } catch { }
+
+            // Mission 4: Outbound Webhooks (O Lojista como Integrador)
+            try {
+                // Configuração fixa para teste (Normalmente viria de uma tabela \`tenant_settings\`)
+                const webhookUrl = 'https://webhook.site/mock-tenant-url'
+
+                if (webhookUrl && ctx) {
+                    const postPromise = fetch(webhookUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ event: 'ORDER_PAID', payload: orderPayload })
+                    }).catch(console.error)
+
+                    ctx.waitUntil(postPromise)
+                }
             } catch { }
         }
     }

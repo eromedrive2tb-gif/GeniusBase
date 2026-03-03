@@ -36,12 +36,12 @@ paymentsRoute.post('/webhooks/:provider', async (c) => {
     WebhookEventSchema.parse(event)
 
     if (event.type === 'CHARGE_COMPLETED' && event.providerChargeId) {
-        // Delegate all logic to Event Handler
+        // Delegate all logic to Event Handler (Passing context for outbound webhooks)
         await PaymentEventHandler.processSuccess(c.env, event.providerChargeId, {
             name: event.payer_name,
             document: event.payer_document,
             email: event.payer_email
-        }, providerName)
+        }, providerName, c.executionCtx)
     }
 
     if (event.type === 'CHARGE_FAILED' && event.providerChargeId) {

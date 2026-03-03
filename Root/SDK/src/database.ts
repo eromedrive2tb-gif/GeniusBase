@@ -22,22 +22,48 @@ export interface QueryResponse<T> {
 export class QueryBuilder<T = Record<string, unknown>> {
     private readonly url: string
     private readonly headers: Record<string, string>
+    private queryLimit?: number
+    private queryOffset?: number
+    private matchId?: string
 
     constructor(url: string, headers: Record<string, string>) {
         this.url = url
         this.headers = headers
     }
 
+    limit(amount: number): this {
+        this.queryLimit = amount
+        return this
+    }
+
+    offset(amount: number): this {
+        this.queryOffset = amount
+        return this
+    }
+
+    eq(column: string, value: string): this {
+        if (column === 'id') {
+            this.matchId = value
+        }
+        return this
+    }
+
+    private buildUrl(): string {
+        const queryParams = new URLSearchParams()
+        if (this.queryLimit !== undefined) queryParams.append('limit', this.queryLimit.toString())
+        if (this.queryOffset !== undefined) queryParams.append('offset', this.queryOffset.toString())
+        const qs = queryParams.toString()
+        return qs ? `${this.url}?${qs}` : this.url
+    }
+
     /**
      * Fetch all rows from the table (GET /api/v1/<table>).
-     * Returns an array of rows scoped to the Tenant's namespace.
      */
     async select(): Promise<QueryResponse<T[]>> {
         try {
-            const res = await fetch(this.url, { method: 'GET', headers: this.headers })
+            const res = await fetch(this.buildUrl(), { method: 'GET', headers: this.headers })
             if (!res.ok) return { data: null, error: await res.text() }
             const json = await res.json() as unknown
-            // Backend wraps results in { data: [...] } — unwrap to match documented interface
             const rows = (Array.isArray(json) ? json
                 : Array.isArray((json as Record<string, unknown>)?.data)
                     ? (json as Record<string, unknown>).data
@@ -50,7 +76,6 @@ export class QueryBuilder<T = Record<string, unknown>> {
 
     /**
      * Insert a new row (POST /api/v1/<table>).
-     * Returns the created record.
      */
     async insert(payload: Partial<T>): Promise<QueryResponse<T>> {
         try {
@@ -60,7 +85,46 @@ export class QueryBuilder<T = Record<string, unknown>> {
                 body: JSON.stringify(payload),
             })
             if (!res.ok) return { data: null, error: await res.text() }
-            return { data: (await res.json()) as T, error: null }
+            const json = await res.json() as any
+            return { data: json.data || json, error: null }
+        } catch (err) {
+            return { data: null, error: err instanceof Error ? err.message : 'Network error' }
+        }
+    }
+
+    /**
+     * Update an existing row (PATCH /api/v1/<table>/:id).
+     * Requirements: Must chain .eq('id', 'value') before calling.
+     */
+    async update(payload: Partial<T>): Promise<QueryResponse<T>> {
+        if (!this.matchId) return { data: null, error: '.eq("id", value) is required for update()' }
+        try {
+            const res = await fetch(`${this.url}/${this.matchId}`, {
+                method: 'PATCH',
+                headers: this.headers,
+                body: JSON.stringify(payload),
+            })
+            if (!res.ok) return { data: null, error: await res.text() }
+            const json = await res.json() as any
+            return { data: json.data || json, error: null }
+        } catch (err) {
+            return { data: null, error: err instanceof Error ? err.message : 'Network error' }
+        }
+    }
+
+    /**
+     * Soft delete an existing row (DELETE /api/v1/<table>/:id).
+     * Requirements: Must chain .eq('id', 'value') before calling.
+     */
+    async delete(): Promise<QueryResponse<null>> {
+        if (!this.matchId) return { data: null, error: '.eq("id", value) is required for delete()' }
+        try {
+            const res = await fetch(`${this.url}/${this.matchId}`, {
+                method: 'DELETE',
+                headers: this.headers,
+            })
+            if (!res.ok) return { data: null, error: await res.text() }
+            return { data: null, error: null }
         } catch (err) {
             return { data: null, error: err instanceof Error ? err.message : 'Network error' }
         }
