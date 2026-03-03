@@ -32,6 +32,11 @@ export class AuthClient {
     private readonly baseUrl: string
     private readonly apiKey: string
     private readonly headers: Record<string, string>
+    public onTokenUpdate?: (token: string) => void
+
+    setToken(token: string) {
+        this.headers["Authorization"] = `Bearer ${token}`
+    }
 
     constructor(baseUrl: string, apiKey: string) {
         this.baseUrl = baseUrl
@@ -73,7 +78,12 @@ export class AuthClient {
                 body: JSON.stringify({ email, password }),
             })
             if (!res.ok) return { data: null, error: await res.text() }
-            return { data: (await res.json()) as Session, error: null }
+
+            const session = (await res.json()) as Session
+            // Auto-upgrade the SDK state explicitly replacing the anon_key with the end_user JWT
+            this.onTokenUpdate?.(session.token)
+
+            return { data: session, error: null }
         } catch (err) {
             return { data: null, error: err instanceof Error ? err.message : 'Network error' }
         }

@@ -117,15 +117,21 @@ export class Channel {
  * Bound to the GeniusBaseClient and called via `gb.channel('name')`.
  */
 export class RealtimeClient {
-    private readonly wsUrl: string
+    private readonly wsBase: string
+    private apiKey: string
+
+    setToken(token: string) {
+        this.apiKey = token
+    }
 
     constructor(baseUrl: string, apiKey: string) {
-        // Convert http(s) → ws(s) and append the token for auth
-        const wsBase = baseUrl.replace(/^http/, 'ws')
-        this.wsUrl = `${wsBase}/api/v1/realtime?token=${encodeURIComponent(apiKey)}`
+        // Convert http(s) → ws(s)
+        this.wsBase = baseUrl.replace(/^http/, 'ws')
+        this.apiKey = apiKey
     }
 
     channel(name: string): Channel {
-        return new Channel(name, this.wsUrl)
+        const url = `${this.wsBase}/api/v1/realtime?token=${encodeURIComponent(this.apiKey)}`
+        return new Channel(name, url)
     }
 }

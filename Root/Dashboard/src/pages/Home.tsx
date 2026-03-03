@@ -10,6 +10,7 @@
 
 import { DashboardLayout } from '../components/templates/DashboardLayout'
 import { DashboardTabs } from '../components/organisms/DashboardTabs'
+import { AnalyticsPanel } from '../components/organisms/AnalyticsPanel'
 import { CoreApisPanel } from '../components/organisms/CoreApisPanel'
 import { GatewaysPanel } from '../components/organisms/GatewaysPanel'
 import { AuthPanel } from '../components/organisms/AuthPanel'
@@ -34,6 +35,7 @@ export const Home = ({ users, customers, products, events }: HomeProps) => {
       <DashboardTabs />
 
       {/* ─── Panels ───────────────────────────────── */}
+      <AnalyticsPanel />
       <CoreApisPanel />
       <AuthPanel users={users} />
       <DatabasePanel customers={customers} products={products} />

@@ -35,6 +35,7 @@ export interface OrderCheckoutData {
     brCode: string | null  // Pix Copia e Cola
     paymentLinkUrl?: string | null
     customer_id?: string | null
+    metadata?: Record<string, any>
     items: OrderItemResult[]
     created_at: string
 }
@@ -46,13 +47,19 @@ export interface CheckoutOptions {
     provider: string
     /** Optional end-user ID to associate with the order */
     customer_id?: string
+    /** Optional metadata payload for the order (e.g. table number, notes) */
+    metadata?: Record<string, any>
 }
 
 export type CheckoutResult = { data: OrderCheckoutData | null; error: string | null }
 
 export class OrdersClient {
     private readonly baseUrl: string
-    private readonly apiKey: string
+    private apiKey: string
+
+    setToken(token: string) {
+        this.apiKey = token
+    }
 
     constructor(baseUrl: string, apiKey: string) {
         this.baseUrl = baseUrl

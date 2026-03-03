@@ -26,6 +26,19 @@ productsRoute.get('/', async (c) => {
         .bind(tenantId)
         .all()
 
+    // Deserialize metadata back to JSON object
+    for (const row of results) {
+        if (row.metadata) {
+            try {
+                row.metadata = JSON.parse(row.metadata as string)
+            } catch {
+                row.metadata = {}
+            }
+        } else {
+            row.metadata = {}
+        }
+    }
+
     return c.json({ data: results })
 })
 
@@ -45,11 +58,13 @@ productsRoute.post('/', async (c) => {
     const id = `prod_${crypto.randomUUID().replace(/-/g, '')}`
     const now = Math.floor(Date.now() / 1000)
 
+    const metadataRaw = body.metadata ? JSON.stringify(body.metadata) : null
+
     try {
         await c.env.DB.prepare(
-            'INSERT INTO products (id, tenant_id, name, price, stock, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+            'INSERT INTO products (id, tenant_id, name, price, stock, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
         )
-            .bind(id, tenantId, body.name, price, stock, now)
+            .bind(id, tenantId, body.name, price, stock, metadataRaw, now)
             .run()
 
         return c.json(
@@ -59,6 +74,7 @@ productsRoute.post('/', async (c) => {
                     name: body.name,
                     price, // Using the integer var, not the raw request string
                     stock,
+                    metadata: body.metadata || {},
                     created_at: now,
                 },
             },

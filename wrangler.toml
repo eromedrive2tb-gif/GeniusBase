@@ -57,3 +57,7 @@ fallthrough = true
 type = "Text"
 globs = ["**/Dashboard/src/scripts/*.js"]
 fallthrough = false
+
+# Cron Triggers for Background Tasks
+[triggers]
+crons = ["*/15 * * * *"]

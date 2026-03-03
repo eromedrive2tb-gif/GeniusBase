@@ -29,6 +29,10 @@ export class PaymentsClient {
     private readonly url: string
     private readonly headers: Record<string, string>
 
+    setToken(token: string) {
+        this.headers["Authorization"] = `Bearer ${token}`
+    }
+
     constructor(baseUrl: string, apiKey: string) {
         this.url = `${baseUrl}/api/v1/payments/charges`
         this.headers = {

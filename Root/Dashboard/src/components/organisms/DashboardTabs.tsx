@@ -16,6 +16,7 @@ interface Tab {
 }
 
 const tabs: Tab[] = [
+    { id: 'analytics', label: '📊 Visão Geral', icon: '📈' },
     { id: 'database', label: 'Tabelas de Dados', icon: '🗄️' },
     { id: 'storage-panel', label: 'Storage / Arquivos', icon: '📁' },
     { id: 'auth', label: 'Usuários Finais', icon: '👥' },

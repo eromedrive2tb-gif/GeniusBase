@@ -115,4 +115,57 @@ app.get('/api/hello', (c) => {
 export { RealtimeState } from './objects/RealtimeState'
 export { DashboardRPCState } from './objects/DashboardRPCState'
 
-export default app
+export default {
+    fetch: app.fetch,
+    async scheduled(event: any, env: Env, ctx: ExecutionContext) {
+        // Find orders older than 1 hour (3600 seconds) that are still PENDING
+        const oneHourAgo = new Date(Date.now() - 3600 * 1000).toISOString()
+
+        try {
+            // Get expired orders
+            const { results: expiredOrders } = await env.DB.prepare(
+                `SELECT id, tenant_id FROM tenant_orders WHERE status = 'PENDING' AND created_at < ?`
+            ).bind(oneHourAgo).all<{ id: string; tenant_id: string }>()
+
+            if (!expiredOrders || expiredOrders.length === 0) {
+                return
+            }
+
+            for (const order of expiredOrders) {
+                // Get items for the order
+                const { results: items } = await env.DB.prepare(
+                    `SELECT product_id, quantity FROM tenant_order_items WHERE order_id = ?`
+                ).bind(order.id).all<{ product_id: string; quantity: number }>()
+
+                if (items && items.length > 0) {
+                    // Update order status to EXPIRED
+                    const statements = [
+                        env.DB.prepare(
+                            `UPDATE tenant_orders SET status = 'EXPIRED', updated_at = ? WHERE id = ?`
+                        ).bind(new Date().toISOString(), order.id)
+                    ]
+
+                    // Increment stock for each item back iteratively
+                    for (const item of items) {
+                        statements.push(
+                            env.DB.prepare(
+                                `UPDATE products SET stock = stock + ? WHERE id = ? AND tenant_id = ?`
+                            ).bind(item.quantity, item.product_id, order.tenant_id)
+                        )
+                    }
+
+                    // Execute batch atomically for each order
+                    await env.DB.batch(statements)
+                    console.log(`[Cron] Expired order ${order.id} and restored stock for ${items.length} items.`)
+                } else {
+                    // Even if no items, mark it expired
+                    await env.DB.prepare(
+                        `UPDATE tenant_orders SET status = 'EXPIRED', updated_at = ? WHERE id = ?`
+                    ).bind(new Date().toISOString(), order.id).run()
+                }
+            }
+        } catch (error) {
+            console.error('[Cron] Error processing expired orders:', error)
+        }
+    }
+}

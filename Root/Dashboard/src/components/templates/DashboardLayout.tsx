@@ -49,7 +49,7 @@ export const DashboardLayout = ({ title, children }: DashboardLayoutProps) => {
             </head>
 
             <body>
-                <div class="dash-wrapper" x-data="{ tab: 'core' }">
+                <div class="dash-wrapper" x-data="{ tab: 'analytics' }">
                     {/* ─── Top Bar ──────────────────────────────── */}
                     <header class="dash-topbar">
                         <div>

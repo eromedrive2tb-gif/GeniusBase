@@ -51,6 +51,7 @@ export { TransactionsClient } from './transactions'
 export type { TransactionCheckoutData } from './transactions'
 export { StorageClient } from './storage'
 export type { StorageFile } from './storage'
+export type { Product, Customer } from './types'
 
 // ─── GeniusBaseClient ──────────────────────────────────────
 
@@ -79,11 +80,24 @@ class GeniusBaseClient {
     /** Upload and manage files in the Cloudflare R2 bucket */
     readonly storage: StorageClient
 
+    setToken(token: string) {
+        this.auth.setToken(token)
+        this._db.setToken(token)
+        this._realtime.setToken(token)
+        this.events.setToken(token)
+        this.payments.setToken(token)
+        this.orders.setToken(token)
+        this.transactions.setToken(token)
+        this.storage.setToken(token)
+    }
+
     constructor(baseUrl: string, apiKey: string) {
         // Trim trailing slash for consistent URL construction
         const url = baseUrl.replace(/\/$/, '')
 
         this.auth = new AuthClient(url, apiKey)
+        this.auth.onTokenUpdate = (token) => this.setToken(token)
+
         this._db = new DatabaseClient(url, apiKey)
         this._realtime = new RealtimeClient(url, apiKey)
         this.events = new EventsClient(url, apiKey)

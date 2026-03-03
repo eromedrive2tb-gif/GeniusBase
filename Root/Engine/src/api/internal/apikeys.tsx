@@ -42,15 +42,16 @@ apiKeysRoute.post('/', async (c) => {
         )
     }
 
-    const jti = crypto.randomUUID()
+    const serviceJti = crypto.randomUUID()
+    const anonJti = crypto.randomUUID()
     const now = Math.floor(Date.now() / 1000)
 
-    // Sign with ENDUSER_JWT_SECRET → token is directly usable by apiKeyAuth
+    // Sign with ENDUSER_JWT_SECRET
     const serviceToken = await sign(
         {
             sub: userId,
             tid: tenantId,
-            jti,
+            jti: serviceJti,
             role: 'service',
             iat: now,
             exp: now + SERVICE_TOKEN_TTL,
@@ -59,9 +60,24 @@ apiKeysRoute.post('/', async (c) => {
         'HS256'
     )
 
-    // Persist JTI in KV so apiKeyAuth can validate the session — TTL = 1 year
+    // Public Anon Key has a super long TTL (10 years) but can be revoked
+    const ANON_TOKEN_TTL = 3650 * 24 * 60 * 60
+    const anonToken = await sign(
+        {
+            sub: userId,
+            tid: tenantId,
+            jti: anonJti,
+            role: 'anon',
+            iat: now,
+            exp: now + ANON_TOKEN_TTL,
+        },
+        secret,
+        'HS256'
+    )
+
+    // Persist JTIs in KV
     await c.env.KV_CACHE.put(
-        `session:${jti}`,
+        `session:${serviceJti}`,
         JSON.stringify({
             user_id: userId,
             tenant_id: tenantId,
@@ -71,44 +87,78 @@ apiKeysRoute.post('/', async (c) => {
         { expirationTtl: SERVICE_TOKEN_TTL }
     )
 
-    // EDA: emit audit event non-blocking via waitUntil
+    await c.env.KV_CACHE.put(
+        `anon_session:${anonJti}`,
+        JSON.stringify({
+            user_id: userId,
+            tenant_id: tenantId,
+            created_at: new Date().toISOString(),
+            type: 'anon',
+        }),
+        { expirationTtl: ANON_TOKEN_TTL }
+    )
+
+    // EDA: emit audit event
     const meta = extractRequestMeta(c)
     emitAuthEvent(c, {
         tenant_id: tenantId,
         user_id: userId,
         event_type: 'API_KEY_GENERATED',
         ...meta,
-        metadata: { jti, role: 'service', ttl_days: 365 },
+        metadata: { service_jti: serviceJti, anon_jti: anonJti, role: 'multi' },
     })
 
     // HTML fragment injected into #api-key-result by HTMX
     return c.html(
-        <div class="api-key-result">
-            <div class="api-key-result__header">
-                <span class="badge badge--active">
-                    <span class="badge--dot"></span>&nbsp;Chave Gerada
-                </span>
-                <span class="api-key-result__ttl">Válida por 365 dias</span>
+        <div class="api-key-result" style="display: flex; flex-direction: column; gap: 1rem;">
+            {/* 🔑 Public Anon Key */}
+            <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px; padding: 1rem;">
+                <div class="api-key-result__header" style="margin-bottom: 0.5rem;">
+                    <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">
+                        <span class="badge--dot" style="background: #10b981;"></span>&nbsp;Public Anon Key
+                    </span>
+                    <span class="api-key-result__ttl" style="font-size: 0.75rem; color: #10b981;">Frontend (Client-Side)</span>
+                </div>
+                <p style="font-size: 0.8rem; color: #94a3b8; margin: 0 0 0.75rem;">
+                    <strong>Permissão Limitada:</strong> Use esta chave livremente nos seus aplicativos web e mobile em produção. Ela permite apenas leitura pública (GET) e Login/Eventos (POST).
+                </p>
+                <div class="api-key-card__body" {...{ 'x-data': `{ copied: false, key: '${anonToken}' }` }}>
+                    <code class="api-key-card__token api-key-card__token--full">{anonToken}</code>
+                    <button
+                        class="btn-outline-cyan"
+                        {...{
+                            'x-on:click': "navigator.clipboard.writeText(key); copied = true; setTimeout(() => copied = false, 2000)"
+                        }}
+                    >
+                        <span {...{ 'x-show': '!copied' }}>Copiar Anon</span>
+                        <span {...{ 'x-show': 'copied', 'x-cloak': '' }}>Copiado! ✓</span>
+                    </button>
+                </div>
             </div>
-            <p class="api-key-result__warning">
-                ⚠️ <strong>Copie agora.</strong> Esta chave não poderá ser exibida novamente.
-            </p>
-            <div
-                class="api-key-card__body"
-                {...{ 'x-data': `{ copied: false, key: '${serviceToken}' }` }}
-            >
-                <code class="api-key-card__token api-key-card__token--full">
-                    {serviceToken}
-                </code>
-                <button
-                    class="btn-outline-cyan"
-                    {...{
-                        'x-on:click': "navigator.clipboard.writeText(key); copied = true; setTimeout(() => copied = false, 2000)"
-                    }}
-                >
-                    <span {...{ 'x-show': '!copied' }}>Copiar Chave</span>
-                    <span {...{ 'x-show': 'copied', 'x-cloak': '' }}>Copiado! ✓</span>
-                </button>
+
+            {/* 🚨 Service Role Key */}
+            <div style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 1rem;">
+                <div class="api-key-result__header" style="margin-bottom: 0.5rem;">
+                    <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;">
+                        <span class="badge--dot" style="background: #ef4444;"></span>&nbsp;Service Role Key
+                    </span>
+                    <span class="api-key-result__ttl" style="font-size: 0.75rem; color: #ef4444;">Backend (Server-Side)</span>
+                </div>
+                <p style="font-size: 0.8rem; color: #94a3b8; margin: 0 0 0.75rem;">
+                    ⚠️ <strong>Poder Total:</strong> Esta chave ignora as regras de segurança (RLS). Nunca a exponha no frontend. Use apenas nos seus servidores ou Workers. Válida por 365 dias.
+                </p>
+                <div class="api-key-card__body" {...{ 'x-data': `{ copied: false, key: '${serviceToken}' }` }}>
+                    <code class="api-key-card__token api-key-card__token--full">{serviceToken}</code>
+                    <button
+                        class="btn-outline-cyan"
+                        {...{
+                            'x-on:click': "navigator.clipboard.writeText(key); copied = true; setTimeout(() => copied = false, 2000)"
+                        }}
+                    >
+                        <span {...{ 'x-show': '!copied' }}>Copiar Service</span>
+                        <span {...{ 'x-show': 'copied', 'x-cloak': '' }}>Copiado! ✓</span>
+                    </button>
+                </div>
             </div>
         </div>
     )

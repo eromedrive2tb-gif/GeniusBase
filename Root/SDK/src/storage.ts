@@ -13,7 +13,15 @@ export interface StorageFile {
 }
 
 export class StorageClient {
-    constructor(private readonly baseUrl: string, private readonly apiKey: string) { }
+    private apiKey: string
+
+    constructor(private readonly baseUrl: string, apiKey: string) {
+        this.apiKey = apiKey
+    }
+
+    setToken(token: string) {
+        this.apiKey = token
+    }
 
     /**
      * Upload a file to your Tenant's private Storage bucket.

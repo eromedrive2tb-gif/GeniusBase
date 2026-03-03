@@ -49,6 +49,7 @@ interface OpenPixWebhookBody {
         status?: string
         customer?: {
             name?: string
+            email?: string
             taxID?: { taxID?: string }
         }
     }
@@ -127,12 +128,13 @@ export class OpenPixProvider implements PaymentProvider {
         const providerChargeId = wb.charge?.correlationID ?? ''
 
         const payer_name = wb.charge?.customer?.name
+        const payer_email = wb.charge?.customer?.email
         // OpenPix usually sends taxID nested: customer.taxID.taxID or just customer.taxID (string)
         const rawTaxId = wb.charge?.customer?.taxID
         const payer_document = typeof rawTaxId === 'object' ? rawTaxId?.taxID : rawTaxId
 
         if (wb.event === 'OPENPIX:CHARGE_COMPLETED') {
-            return { type: 'CHARGE_COMPLETED', providerChargeId, payer_name, payer_document, raw: body }
+            return { type: 'CHARGE_COMPLETED', providerChargeId, payer_name, payer_document, payer_email, raw: body }
         }
 
         if (wb.event === 'OPENPIX:CHARGE_EXPIRED' || wb.event === 'OPENPIX:CHARGE_FAILED') {

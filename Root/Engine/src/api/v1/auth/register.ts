@@ -49,12 +49,19 @@ endUserRegisterRoute.post('/', async (c) => {
     const passwordHash = await hashPassword(password)
     const now = Math.floor(Date.now() / 1000)
 
+    // CRM Identity Auto-Capture
+    const customerId = `cus_${crypto.randomUUID().replace(/-/g, '')}`
+    const nameStr = typeof body.name === 'string' && body.name.trim() !== '' ? body.name.trim() : null
+
     try {
-        await c.env.DB.prepare(
-            'INSERT INTO tenant_users (id, tenant_id, email, password_hash, created_at) VALUES (?, ?, ?, ?, ?)'
-        )
-            .bind(id, tenantId, email, passwordHash, now)
-            .run()
+        await c.env.DB.batch([
+            c.env.DB.prepare(
+                'INSERT INTO tenant_users (id, tenant_id, email, password_hash, created_at) VALUES (?, ?, ?, ?, ?)'
+            ).bind(id, tenantId, email, passwordHash, now),
+            c.env.DB.prepare(
+                'INSERT INTO tenant_customers (id, tenant_id, name, email, created_at) VALUES (?, ?, ?, ?, ?)'
+            ).bind(customerId, tenantId, nameStr ?? email, email, now)
+        ])
 
         // Não retorna a senha no payload
         return c.json(

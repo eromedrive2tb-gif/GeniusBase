@@ -127,32 +127,53 @@ paymentsRoute.post('/webhooks/:provider', async (c) => {
 
         // Phase 13 path: look up the transaction (created by POST /api/v1/orders)
         const txn = await c.env.DB.prepare(
-            `SELECT id, tenant_id, order_id, amount
+            `SELECT id, tenant_id, order_id, amount, customer_id
              FROM tenant_transactions
              WHERE provider_transaction_id = ? AND status = 'PENDING'
              LIMIT 1`
         ).bind(event.providerChargeId)
-            .first<{ id: string; tenant_id: string; order_id: string; amount: number }>()
+            .first<{ id: string; tenant_id: string; order_id: string; amount: number; customer_id: string | null }>()
 
         if (txn) {
             // Include payer data in the update
             const pName = event.payer_name ?? null
             const pDoc = event.payer_document ?? null
 
-            // ACID batch: mark transaction (+ order if linked) as paid atomically
+            // Passive CRM Capture (Identify or Insert the Customer)
+            let finalCustomerId = txn.customer_id
+            if (!finalCustomerId && pDoc) {
+                // Try to find the customer by document or email in this tenant
+                const existingCustomer = await c.env.DB.prepare(
+                    `SELECT id FROM tenant_customers WHERE tenant_id = ? AND (document = ? OR email = ?)`
+                ).bind(txn.tenant_id, pDoc, event.payer_email ?? pDoc).first<{ id: string }>()
+
+                if (existingCustomer) {
+                    finalCustomerId = existingCustomer.id
+                } else {
+                    // Automatically insert new customer
+                    const newCustomerId = `cus_${crypto.randomUUID().replace(/-/g, '')}`
+                    await c.env.DB.prepare(
+                        `INSERT INTO tenant_customers (id, tenant_id, name, document, email, created_at)
+                         VALUES (?, ?, ?, ?, ?, ?)`
+                    ).bind(newCustomerId, txn.tenant_id, pName ?? 'Cliente Anônimo', pDoc, event.payer_email ?? null, now).run()
+                    finalCustomerId = newCustomerId
+                }
+            }
+
+            // ACID batch: mark transaction (+ order if linked) as paid atomically, tracking the customer_id
             const statements = [
                 c.env.DB.prepare(
                     `UPDATE tenant_transactions 
-                     SET status = 'COMPLETED', payer_name = ?, payer_document = ? 
+                     SET status = 'COMPLETED', payer_name = ?, payer_document = ?, customer_id = ?
                      WHERE id = ?`
-                ).bind(pName, pDoc, txn.id)
+                ).bind(pName, pDoc, finalCustomerId, txn.id)
             ]
 
             if (txn.order_id) {
                 statements.push(
                     c.env.DB.prepare(
-                        `UPDATE tenant_orders SET status = 'PAID', updated_at = ? WHERE id = ?`
-                    ).bind(now, txn.order_id)
+                        `UPDATE tenant_orders SET status = 'PAID', updated_at = ?, customer_id = ? WHERE id = ?`
+                    ).bind(now, finalCustomerId, txn.order_id)
                 )
             }
 

@@ -95,8 +95,11 @@ const deleteUser: RpcHandler = async ({ payload, tenantId, env, broadcast }) => 
 const fetchCustomers: RpcHandler = async ({ tenantId, env }) => {
     const { results } = await env.DB.prepare(
         'SELECT * FROM customers WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 50'
-    ).bind(tenantId).all()
-    return results
+    ).bind(tenantId).all<{ id: string; name: string; email: string | null; created_at: number; metadata: string | null }>()
+    return results.map(row => ({
+        ...row,
+        metadata: (() => { try { return JSON.parse(row.metadata ?? '{}') } catch { return {} } })()
+    }))
 }
 
 const createCustomer: RpcHandler = async ({ payload, tenantId, env, broadcast }) => {
@@ -122,8 +125,11 @@ const createCustomer: RpcHandler = async ({ payload, tenantId, env, broadcast })
 const fetchProducts: RpcHandler = async ({ tenantId, env }) => {
     const { results } = await env.DB.prepare(
         'SELECT * FROM products WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 50'
-    ).bind(tenantId).all()
-    return results
+    ).bind(tenantId).all<{ id: string; name: string; price: number; stock: number; created_at: number; metadata: string | null }>()
+    return results.map(row => ({
+        ...row,
+        metadata: (() => { try { return JSON.parse(row.metadata ?? '{}') } catch { return {} } })()
+    }))
 }
 
 const createProduct: RpcHandler = async ({ payload, tenantId, env, broadcast }) => {
@@ -160,7 +166,32 @@ const fetchEvents: RpcHandler = async ({ tenantId, env }) => {
     }))
 }
 
-// ─── Dashboard Stats ────────────────────────────────────────────
+// ─── Dashboard Stats & Analytics ────────────────────────────────
+
+const fetchAnalytics: RpcHandler = async ({ tenantId, env }) => {
+    // We execute 4 separate COUNT/SUM queries in parallel via Promise.all
+    // - Revenue E-commerce (Orders PAID)
+    // - Revenue Transactions (Standalone COMPLETED)
+    // - Total Customers
+    // - Total Paid Orders
+    const [revOrders, revTrans, custCount, orderCount] = await Promise.all([
+        env.DB.prepare("SELECT SUM(total_amount) as total FROM tenant_orders WHERE tenant_id = ? AND status = 'PAID'")
+            .bind(tenantId).first<{ total: number | null }>(),
+        env.DB.prepare("SELECT SUM(amount) as total FROM tenant_transactions WHERE tenant_id = ? AND status = 'COMPLETED'")
+            .bind(tenantId).first<{ total: number | null }>(),
+        env.DB.prepare("SELECT COUNT(id) as count FROM customers WHERE tenant_id = ?")
+            .bind(tenantId).first<{ count: number }>(),
+        env.DB.prepare("SELECT COUNT(id) as count FROM tenant_orders WHERE tenant_id = ? AND status = 'PAID'")
+            .bind(tenantId).first<{ count: number }>(),
+    ])
+
+    return {
+        revenueOrders: revOrders?.total ?? 0,
+        revenueTransactions: revTrans?.total ?? 0,
+        totalCustomers: custCount?.count ?? 0,
+        totalOrders: orderCount?.count ?? 0,
+    }
+}
 
 const fetchDashboardStats: RpcHandler = async ({ tenantId, env }) => {
     const [usersRes, customersRes, productsRes] = await Promise.all([
@@ -238,6 +269,7 @@ const fetchOrders: RpcHandler = async ({ tenantId, env }) => {
              c.email AS customer_email,
              o.status,
              o.total_amount,
+             o.metadata,
              o.created_at,
              o.updated_at,
              COALESCE(t.payment_method, 'PIX')  AS payment_method,
@@ -253,8 +285,12 @@ const fetchOrders: RpcHandler = async ({ tenantId, env }) => {
          WHERE o.tenant_id = ?
          ORDER BY o.created_at DESC
          LIMIT 50`
-    ).bind(tenantId).all()
-    return results ?? []
+    ).bind(tenantId).all<any>()
+
+    return results.map(row => ({
+        ...row,
+        metadata: (() => { try { return JSON.parse(row.metadata ?? '{}') } catch { return {} } })()
+    }))
 }
 
 // ── Transactions (Standalone) ─────────────────────────────────
@@ -318,6 +354,7 @@ const deleteFile: RpcHandler = async ({ payload, tenantId, env, broadcast }) => 
 export const commandRegistry: Record<string, RpcHandler> = {
     PING: async () => ({ pong: true, timestamp: new Date().toISOString() }),
     FETCH_DASHBOARD_STATS: fetchDashboardStats,
+    FETCH_ANALYTICS: fetchAnalytics,
 
     // Users (End-Users)
     FETCH_USERS: fetchUsers,

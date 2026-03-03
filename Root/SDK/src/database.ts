@@ -75,6 +75,10 @@ export class DatabaseClient {
     private readonly baseUrl: string
     private readonly headers: Record<string, string>
 
+    setToken(token: string) {
+        this.headers["Authorization"] = `Bearer ${token}`
+    }
+
     constructor(baseUrl: string, apiKey: string) {
         this.baseUrl = baseUrl
         this.headers = {

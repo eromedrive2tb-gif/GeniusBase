@@ -26,6 +26,19 @@ customersRoute.get('/', async (c) => {
         .bind(tenantId)
         .all()
 
+    // Deserialize metadata back to JSON object
+    for (const row of results) {
+        if (row.metadata) {
+            try {
+                row.metadata = JSON.parse(row.metadata as string)
+            } catch {
+                row.metadata = {}
+            }
+        } else {
+            row.metadata = {}
+        }
+    }
+
     return c.json({ data: results })
 })
 
@@ -41,11 +54,13 @@ customersRoute.post('/', async (c) => {
     const id = `cus_${crypto.randomUUID().replace(/-/g, '')}`
     const now = Math.floor(Date.now() / 1000)
 
+    const metadataRaw = body.metadata ? JSON.stringify(body.metadata) : null
+
     try {
         await c.env.DB.prepare(
-            'INSERT INTO customers (id, tenant_id, name, email, created_at) VALUES (?, ?, ?, ?, ?)'
+            'INSERT INTO customers (id, tenant_id, name, email, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)'
         )
-            .bind(id, tenantId, body.name, body.email || null, now)
+            .bind(id, tenantId, body.name, body.email || null, metadataRaw, now)
             .run()
 
         return c.json(
@@ -54,6 +69,7 @@ customersRoute.post('/', async (c) => {
                     id,
                     name: body.name,
                     email: body.email,
+                    metadata: body.metadata || {},
                     created_at: now,
                 },
             },

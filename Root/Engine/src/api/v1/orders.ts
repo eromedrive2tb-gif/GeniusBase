@@ -29,9 +29,22 @@ const ordersRoute = createAuthRouter()
 ordersRoute.post('/', apiKeyAuth, async (c) => {
     const tenantId = c.get('tenantId') as string
 
+    // ── 0. Rate Limiting for Anonymous Guest Checkouts ─────────
+    if (c.get('userRole') === 'anon') {
+        const ip = c.req.header('CF-Connecting-IP') || 'unknown'
+        const kvKey = `ratelimit:checkout:${ip}`
+        const countStr = await c.env.KV_CACHE.get(kvKey)
+        const count = parseInt(countStr || '0', 10)
+
+        if (count >= 5) {
+            return c.json({ error: 'Too Many Requests: Rate limit exceeded for anonymous checkout (max 5/hour)' }, 429)
+        }
+        await c.env.KV_CACHE.put(kvKey, (count + 1).toString(), { expirationTtl: 3600 })
+    }
+
     // ── 1. Parse and validate body ─────────────────────────
     type OrderItem = { product_id: string; quantity: number }
-    let body: { items?: unknown; provider?: unknown; customer_id?: unknown }
+    let body: { items?: unknown; provider?: unknown; customer_id?: unknown; metadata?: unknown }
     try { body = await c.req.json() } catch {
         return c.json({ error: 'Body must be valid JSON' }, 400)
     }
@@ -82,19 +95,22 @@ ordersRoute.post('/', apiKeyAuth, async (c) => {
         return c.json({ error: err instanceof Error ? err.message : 'Unknown provider' }, 400)
     }
 
-    // ── 3. Fetch prices server-side (NEVER trust client prices) ──
+    // ── 3. Fetch prices and validate stock server-side ──
     // Fetch in a single batch query using IN(?) with individual lookups per item
     // to get per-item prices (D1 doesn't support parameterized IN arrays natively).
     const priceMap = new Map<string, number>()
     for (const item of items) {
         const row = await c.env.DB.prepare(
-            `SELECT id, price FROM products
+            `SELECT id, price, stock FROM products
              WHERE id = ? AND tenant_id = ?`
         ).bind(item.product_id, tenantId)
-            .first<{ id: string; price: number }>()
+            .first<{ id: string; price: number; stock: number }>()
 
         if (!row) {
             return c.json({ error: `Product "${item.product_id}" not found or does not belong to this tenant` }, 422)
+        }
+        if (row.stock < item.quantity) {
+            return c.json({ error: `Out of stock: Product "${row.id}" only has ${row.stock} unit(s) available` }, 400)
         }
         priceMap.set(item.product_id, row.price)
     }
@@ -152,6 +168,7 @@ ordersRoute.post('/', apiKeyAuth, async (c) => {
 
     // ── 8. Atomic batch write (D1 batch = ACID) ────────────
     const metadataJson = JSON.stringify({ items })
+    const orderMetadataRaw = body.metadata ? JSON.stringify(body.metadata) : null
 
     // Build order_items statements
     const itemStatements = items.map((item) => {
@@ -168,14 +185,24 @@ ordersRoute.post('/', apiKeyAuth, async (c) => {
         )
     })
 
+    // Build stock decrement statements
+    const stockStatements = items.map((item) => {
+        return c.env.DB.prepare(
+            `UPDATE products SET stock = stock - ? WHERE id = ? AND tenant_id = ?`
+        ).bind(item.quantity, item.product_id, tenantId)
+    })
+
     try {
         await c.env.DB.batch([
+            // Decrement Stock
+            ...stockStatements,
+
             // Insert the order
             c.env.DB.prepare(
                 `INSERT INTO tenant_orders
-                 (id, tenant_id, customer_id, status, total_amount, created_at, updated_at)
-                 VALUES (?, ?, ?, 'PENDING', ?, ?, ?)`
-            ).bind(orderId, tenantId, customerId, totalAmount, now, now),
+                 (id, tenant_id, customer_id, status, total_amount, metadata, created_at, updated_at)
+                 VALUES (?, ?, ?, 'PENDING', ?, ?, ?, ?)`
+            ).bind(orderId, tenantId, customerId, totalAmount, orderMetadataRaw, now, now),
 
             // Insert all line items
             ...itemStatements,
@@ -228,7 +255,7 @@ ordersRoute.get('/:id', apiKeyAuth, async (c) => {
 
     const order = await c.env.DB.prepare(
         `SELECT
-             o.id, o.tenant_id, o.status, o.total_amount, o.created_at, o.updated_at,
+             o.id, o.tenant_id, o.status, o.total_amount, o.metadata, o.created_at, o.updated_at,
              COALESCE(t.payment_method, 'PIX')  AS payment_method,
              COALESCE(t.status, 'PENDING')       AS transaction_status
          FROM tenant_orders o
@@ -236,7 +263,7 @@ ordersRoute.get('/:id', apiKeyAuth, async (c) => {
          WHERE o.id = ? AND o.tenant_id = ?`
     ).bind(orderId, tenantId)
         .first<{
-            id: string; tenant_id: string; status: string; total_amount: number;
+            id: string; tenant_id: string; status: string; total_amount: number; metadata: string | null;
             created_at: string; updated_at: string;
             payment_method: string; transaction_status: string
         }>()
@@ -245,11 +272,16 @@ ordersRoute.get('/:id', apiKeyAuth, async (c) => {
         return c.json({ error: `Order "${orderId}" not found` }, 404)
     }
 
+    let parsedMetadata = {}
+    if (order.metadata) {
+        try { parsedMetadata = JSON.parse(order.metadata) } catch { }
+    }
+
     const { results: items } = await c.env.DB.prepare(
         `SELECT product_id, quantity, price_at_time FROM tenant_order_items WHERE order_id = ?`
     ).bind(orderId).all()
 
-    return c.json({ success: true, data: { ...order, items } })
+    return c.json({ success: true, data: { ...order, metadata: parsedMetadata, items } })
 })
 
 export { ordersRoute }

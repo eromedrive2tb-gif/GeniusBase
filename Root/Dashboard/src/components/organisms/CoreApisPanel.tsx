@@ -20,16 +20,16 @@ export const CoreApisPanel = () => {
           </div>
         </div>
 
-        {/* ─── Service API Key Generator ───────────────── */}
+        {/* ─── API Keys Generator ───────────────── */}
         <div class="api-key-card api-key-card--service">
           <div class="api-key-card__header">
-            <span class="api-key-card__title">🔑 Service API Key</span>
+            <span class="api-key-card__title">🔑 Gerenciamento de Chaves de API</span>
             <span class="badge" style="background: rgba(180,100,255,0.15); color: #b464ff; border-color: rgba(180,100,255,0.3);">
-              role: service
+              multi-keys
             </span>
           </div>
           <p class="api-key-card__desc" style="padding: 0 1rem 0.75rem; color: var(--gb-muted); font-size: 0.8rem; margin: 0;">
-            Gera um JWT de longa duração (365 dias) com <code>role: service</code> para usar como Bearer Token nas chamadas ao BaaS (<code>/api/v1/*</code>) a partir dos seus apps clientes. Cada clique gera uma nova chave independente.
+            Gera instantaneamente suas chaves de integração para consumir o BaaS (<code>/api/v1/*</code>). Cada clique revoga chaves anteriores e gera simultaneamente a <strong>Public Anon Key</strong> (leitura limitadas para o Frontend) e a <strong>Service Role Key</strong> (acesso ilimitado para o Backend).
           </p>
           <div class="api-key-card__body">
             <button
@@ -39,13 +39,13 @@ export const CoreApisPanel = () => {
               hx-swap="innerHTML"
               hx-indicator="#apikey-spinner"
             >
-              ⚡ Gerar Service API Key
+              ⚡ Gerar Novas Chaves
             </button>
             <span id="apikey-spinner" class="htmx-indicator" style="margin-left: 0.5rem; opacity: 0; transition: opacity 0.2s;">
-              Gerando...
+              Criando túneis...
             </span>
           </div>
-          {/* HTMX inject target — one-time token displayed here after generation */}
+          {/* HTMX inject target — dual tokens displayed here after generation */}
           <div id="api-key-result" style="padding: 0 1rem 1rem;"></div>
         </div>
         <br />

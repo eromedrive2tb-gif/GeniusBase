@@ -111,6 +111,7 @@ export const DatabasePanel = ({ customers, products }: DatabasePanelProps) => {
                             <th>ID do Cliente</th>
                             <th>Nome</th>
                             <th>E-mail</th>
+                            <th>Dados Extras</th>
                             <th>Criado em</th>
                         </tr>
                     </thead>
@@ -132,6 +133,14 @@ export const DatabasePanel = ({ customers, products }: DatabasePanelProps) => {
                                 <td><span class="dash-table__code" {...{ 'x-text': 'c.id' }}></span></td>
                                 <td {...{ 'x-text': 'c.name' }}></td>
                                 <td class="dash-table__muted" {...{ 'x-text': 'c.email ?? "—"' }}></td>
+                                <td>
+                                    <template {...{ 'x-if': 'c.metadata && Object.keys(c.metadata).length > 0' }}>
+                                        <span style="font-size: 0.65rem; background: rgba(99,102,241,0.15); color: #a5b4fc; padding: 0.2rem 0.45rem; border-radius: 4px;">{'{ }'} json</span>
+                                    </template>
+                                    <template {...{ 'x-if': '!c.metadata || Object.keys(c.metadata).length === 0' }}>
+                                        <span class="dash-table__muted">—</span>
+                                    </template>
+                                </td>
                                 <td class="dash-table__muted" {...{ 'x-text': 'new Date(c.created_at * 1000).toLocaleString("pt-BR")' }}></td>
                             </tr>
                         </template>
@@ -175,6 +184,7 @@ export const DatabasePanel = ({ customers, products }: DatabasePanelProps) => {
                             <th>Nome do Produto</th>
                             <th>Preço (Centavos)</th>
                             <th>Estoque</th>
+                            <th>Dados Extras</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -193,6 +203,14 @@ export const DatabasePanel = ({ customers, products }: DatabasePanelProps) => {
                                 <td class="dash-table__muted" style="color: var(--gb-cyan);"
                                     {...{ 'x-text': '"R$ " + (p.price / 100).toFixed(2)' }}></td>
                                 <td class="dash-table__muted" {...{ 'x-text': 'p.stock' }}></td>
+                                <td>
+                                    <template {...{ 'x-if': 'p.metadata && Object.keys(p.metadata).length > 0' }}>
+                                        <span style="font-size: 0.65rem; background: rgba(99,102,241,0.15); color: #a5b4fc; padding: 0.2rem 0.45rem; border-radius: 4px;">{'{ }'} json</span>
+                                    </template>
+                                    <template {...{ 'x-if': '!p.metadata || Object.keys(p.metadata).length === 0' }}>
+                                        <span class="dash-table__muted">—</span>
+                                    </template>
+                                </td>
                             </tr>
                         </template>
                     </tbody>

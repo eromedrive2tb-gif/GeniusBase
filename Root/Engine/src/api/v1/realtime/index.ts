@@ -44,10 +44,10 @@ realtimeRoute.get('/', async (c) => {
     try {
         const payload = await verifyToken(token, secret)
 
-        // 3. RBAC gate — only end_user or service tokens may open realtime connections
-        if (payload.role !== 'end_user' && payload.role !== 'service') {
+        // 3. RBAC gate — only end_user, service, or anon tokens may open realtime connections
+        if (payload.role !== 'end_user' && payload.role !== 'service' && payload.role !== 'anon') {
             return c.json(
-                { error: 'Forbidden: Only end_user or service tokens may use Realtime' },
+                { error: 'Forbidden: Only end_user, service or anon tokens may use Realtime' },
                 403
             )
         }

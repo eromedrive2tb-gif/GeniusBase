@@ -37,7 +37,11 @@ export type TransactionResult = { data: TransactionCheckoutData | null; error: s
 
 export class TransactionsClient {
     private readonly baseUrl: string
-    private readonly apiKey: string
+    private apiKey: string
+
+    setToken(token: string) {
+        this.apiKey = token
+    }
 
     constructor(baseUrl: string, apiKey: string) {
         this.baseUrl = baseUrl

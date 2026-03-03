@@ -10,9 +10,24 @@ const transactionsRoute = createAuthRouter()
 transactionsRoute.post('/', apiKeyAuth, async (c) => {
     const tenantId = c.get('tenantId') as string
 
-    // Require service role to create transactions directly
-    if (c.get('userRole') !== 'service') {
-        return c.json({ error: 'Forbidden: only service tokens can generate transactions' }, 403)
+    const userRole = c.get('userRole')
+
+    // ── 0. Rate Limiting for Anonymous Guest Checkouts ─────────
+    if (userRole === 'anon') {
+        const ip = c.req.header('CF-Connecting-IP') || 'unknown'
+        const kvKey = `ratelimit:checkout:${ip}`
+        const countStr = await c.env.KV_CACHE.get(kvKey)
+        const count = parseInt(countStr || '0', 10)
+
+        if (count >= 5) {
+            return c.json({ error: 'Too Many Requests: Rate limit exceeded for anonymous checkout (max 5/hour)' }, 429)
+        }
+        await c.env.KV_CACHE.put(kvKey, (count + 1).toString(), { expirationTtl: 3600 })
+    }
+
+    // Require service or anon role to create transactions directly
+    if (userRole !== 'service' && userRole !== 'anon') {
+        return c.json({ error: 'Forbidden: only service or anon tokens can generate transactions' }, 403)
     }
 
     let payload: any

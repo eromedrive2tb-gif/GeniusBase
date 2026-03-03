@@ -33,9 +33,8 @@ export const apiKeyAuth = createMiddleware<{
         // 1. Verify JWT signature and expiration
         const payload = await verifyToken(token, secret)
 
-        // 2. RBAC gate — only end_user and service tokens may access BaaS endpoints.
-        // Admin/owner tokens are strictly forbidden here to enforce domain isolation.
-        if (payload.role !== 'end_user' && payload.role !== 'service') {
+        // 2. RBAC gate — end_user, service and anon tokens
+        if (payload.role !== 'end_user' && payload.role !== 'service' && payload.role !== 'anon') {
             return c.json(
                 { error: 'Forbidden: Admin tokens cannot access BaaS endpoints' },
                 403
@@ -46,6 +45,8 @@ export const apiKeyAuth = createMiddleware<{
         let sessionKey = ''
         if (payload.role === 'end_user') {
             sessionKey = `user_session:${payload.jti}`
+        } else if (payload.role === 'anon') {
+            sessionKey = `anon_session:${payload.jti}`
         } else {
             // service tokens use the tenant session namespace
             sessionKey = `session:${payload.jti}`
@@ -57,7 +58,28 @@ export const apiKeyAuth = createMiddleware<{
             return c.json({ error: 'Unauthorized: Session expired or revoked' }, 401)
         }
 
-        // 3. Inject context
+        // 4. Edge RLS Implementation for 'anon' role
+        if (payload.role === 'anon') {
+            const method = c.req.method.toUpperCase()
+            const pathname = c.req.path
+
+            if (method !== 'GET') {
+                // For POST, allow strictly these paths (Auth, Telemetry, and Guest Checkouts)
+                const isAllowedPost = method === 'POST' && (
+                    pathname.endsWith('/api/v1/auth/login') ||
+                    pathname.endsWith('/api/v1/auth/register') ||
+                    pathname.endsWith('/api/v1/events') ||
+                    pathname.endsWith('/api/v1/orders') ||
+                    pathname.endsWith('/api/v1/transactions')
+                )
+
+                if (!isAllowedPost) {
+                    return c.json({ error: 'Forbidden: Anonymous keys have read-only or strictly limited access' }, 403)
+                }
+            }
+        }
+
+        // 5. Inject context
         c.set('tenantId', payload.tid)
         c.set('userId', payload.sub)
         c.set('userRole', payload.role)

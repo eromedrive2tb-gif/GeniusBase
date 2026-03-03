@@ -42,6 +42,8 @@ export interface WebhookEvent {
     payer_name?: string
     /** Extracted payer document (CPF/CNPJ), if available */
     payer_document?: string
+    /** Extracted payer email, if available */
+    payer_email?: string
     /** Raw webhook body for audit */
     raw: unknown
 }

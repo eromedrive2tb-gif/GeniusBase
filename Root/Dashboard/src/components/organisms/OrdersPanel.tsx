@@ -190,6 +190,7 @@ export const OrdersPanel = () => {
                                 <th style="padding:0.65rem 0.75rem; text-align:left; color:var(--gb-text-muted); font-weight:500; font-size:0.72rem; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap;">Data / Hora</th>
                                 <th style="padding:0.65rem 0.75rem; text-align:center; color:var(--gb-text-muted); font-weight:500; font-size:0.72rem; text-transform:uppercase; letter-spacing:.04em;">Status</th>
                                 <th style="padding:0.65rem 0.75rem; text-align:center; color:var(--gb-text-muted); font-weight:500; font-size:0.72rem; text-transform:uppercase; letter-spacing:.04em;">Itens</th>
+                                <th style="padding:0.65rem 0.75rem; text-align:center; color:var(--gb-text-muted); font-weight:500; font-size:0.72rem; text-transform:uppercase; letter-spacing:.04em;">Extras</th>
                                 <th style="padding:0.65rem 0.75rem; text-align:left; color:var(--gb-text-muted); font-weight:500; font-size:0.72rem; text-transform:uppercase; letter-spacing:.04em;">Método</th>
                                 <th style="padding:0.65rem 0.75rem; text-align:right; color:var(--gb-text-muted); font-weight:500; font-size:0.72rem; text-transform:uppercase; letter-spacing:.04em;">Total</th>
                             </tr>
@@ -232,6 +233,16 @@ export const OrdersPanel = () => {
                                     {/* Item Count */}
                                     <td style="padding:0.65rem 0.75rem; text-align:center; color:var(--gb-text-muted);"
                                         x-text="(order.item_count || 0) + ' item(s)'"></td>
+
+                                    {/* Extras Badge */}
+                                    <td style="padding:0.65rem 0.75rem; text-align:center;">
+                                        <template {...{ 'x-if': 'order.metadata && Object.keys(order.metadata).length > 0' }}>
+                                            <span style="font-size: 0.65rem; background: rgba(99,102,241,0.15); color: #a5b4fc; padding: 0.2rem 0.45rem; border-radius: 4px;">{'{ }'} json</span>
+                                        </template>
+                                        <template {...{ 'x-if': '!order.metadata || Object.keys(order.metadata).length === 0' }}>
+                                            <span class="dash-table__muted">—</span>
+                                        </template>
+                                    </td>
 
                                     {/* Payment Method */}
                                     <td style="padding:0.65rem 0.75rem; color:var(--gb-text-muted);">
