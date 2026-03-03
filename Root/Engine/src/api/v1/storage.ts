@@ -53,7 +53,7 @@ export const handleStorageUpload = async (c: any) => {
     }
 
     // 4. Persistir a referência no D1 (Metadados Relacionais)
-    const now = Math.floor(Date.now() / 1000)
+    const now = new Date().toISOString()
     try {
         await c.env.DB.prepare(
             `INSERT INTO tenant_files 

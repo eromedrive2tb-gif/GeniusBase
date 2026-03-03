@@ -9,6 +9,7 @@
 import { Hono } from 'hono'
 import { createAuthRouter } from '../../../utils/router'
 import { apiKeyAuth } from '../../../middlewares/apiKeyAuth'
+import { CustomerCreateSchema } from '../../../domain/schemas'
 
 const customersRoute = createAuthRouter()
 
@@ -45,14 +46,11 @@ customersRoute.get('/', async (c) => {
 // Create Customer
 customersRoute.post('/', async (c) => {
     const tenantId = c.get('tenantId') as string
-    const body = await c.req.json()
-
-    if (!body.name) {
-        return c.json({ error: 'Name is required' }, 400)
-    }
+    const rawBody = await c.req.json()
+    const body = CustomerCreateSchema.parse(rawBody)
 
     const id = `cus_${crypto.randomUUID().replace(/-/g, '')}`
-    const now = Math.floor(Date.now() / 1000)
+    const now = new Date().toISOString()
 
     const metadataRaw = body.metadata ? JSON.stringify(body.metadata) : null
 

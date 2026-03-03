@@ -141,7 +141,7 @@ export const DatabasePanel = ({ customers, products }: DatabasePanelProps) => {
                                         <span class="dash-table__muted">—</span>
                                     </template>
                                 </td>
-                                <td class="dash-table__muted" {...{ 'x-text': 'new Date(c.created_at * 1000).toLocaleString("pt-BR")' }}></td>
+                                <td class="dash-table__muted" {...{ 'x-text': 'c.created_at ? (!isNaN(new Date(c.created_at).getTime()) ? new Date(c.created_at).toLocaleString("pt-BR") : c.created_at) : "—"' }}></td>
                             </tr>
                         </template>
                     </tbody>

@@ -66,6 +66,7 @@ export interface LoginRequest {
 
 export interface AuthVariables {
     tenantId: string
-    userId: string
-    userRole: string
+    userId?: string
+    userRole?: string
+    jti?: string
 }

@@ -11,6 +11,8 @@
  * - Tabela com badges de status coloridas e formatação de moeda.
  */
 
+import { StatusBadge } from '../atoms/StatusBadge'
+
 // Script for Alpine controller — defined before x-data so Alpine can find it.
 const controllerScript = `
 function ordersController() {
@@ -217,17 +219,7 @@ export const OrdersPanel = () => {
 
                                     {/* Status Badge */}
                                     <td style="padding:0.65rem 0.75rem; text-align:center;">
-                                        <span
-                                            x-text="order.status"
-                                            {...{
-                                                ':style': `order.status === 'PAID'
-                                                    ? 'background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.3);'
-                                                    : order.status === 'CANCELED'
-                                                        ? 'background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.25);'
-                                                        : 'background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.25);'`
-                                            }}
-                                            style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:0.2rem 0.55rem; border-radius:20px; display:inline-block; transition:all 0.4s;"
-                                        ></span>
+                                        <StatusBadge status="order.status" isAlpine={true} />
                                     </td>
 
                                     {/* Item Count */}

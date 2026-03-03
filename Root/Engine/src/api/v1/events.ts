@@ -47,7 +47,7 @@ eventsRoute.post('/', async (c) => {
 
     const id = `evt_${crypto.randomUUID().replace(/-/g, '')}`
     const payloadStr = JSON.stringify(payloadObj)
-    const now = Math.floor(Date.now() / 1000)
+    const now = new Date().toISOString()
 
     try {
         await c.env.DB.prepare(

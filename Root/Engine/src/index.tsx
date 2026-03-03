@@ -10,6 +10,7 @@
 
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import { z } from 'zod'
 import { Login } from '../../Dashboard/src/pages/Login'
 import { Register } from '../../Dashboard/src/pages/Register'
 import { Index } from '../../Dashboard/src/pages/Index'
@@ -28,6 +29,7 @@ import { internalDashboardRoute } from './api/internal/dashboard'
 import { apiKeysRoute } from './api/internal/apikeys'
 import { internalRealtimeRoute } from './api/internal/realtime'
 import { internalStorageRoute } from './api/internal/storage'
+import { DomainError } from './domain/errors'
 
 // CSS imports (raw text for static serving)
 import authCss from '../../Dashboard/src/styles/auth.css'
@@ -37,6 +39,51 @@ import mainCss from '../../Dashboard/src/styles/main.css'
 import rpcClientJs from '../../Dashboard/src/scripts/rpcClient.js'
 
 const app = new Hono<{ Bindings: Env }>()
+
+// ─── Global Error Boundary ─────────────────────────────────
+
+app.onError((err, c) => {
+    // 1. Handle Zod Validation Errors
+    if (err instanceof z.ZodError) {
+        return c.json({
+            error: {
+                message: 'Invalid request payload',
+                code: 'VALIDATION_ERROR',
+                details: err.issues
+            }
+        }, 400)
+    }
+
+    // 2. Handle Domain Errors (Known)
+    if (err instanceof DomainError) {
+        return c.json({
+            error: {
+                message: err.message,
+                code: err.code
+            }
+        }, err.statusCode as any)
+    }
+
+    // 2. Handle Unknown Errors (Crashes)
+    console.error('[GlobalError] Unhandled Exception:', err)
+
+    // Check if it's a D1 error or something else that we want to gently mask
+    return c.json({
+        error: {
+            message: 'Internal Server Error',
+            code: 'INTERNAL_SERVER_ERROR'
+        }
+    }, 500)
+})
+
+app.notFound((c) => {
+    return c.json({
+        error: {
+            message: `Route not found: ${c.req.path}`,
+            code: 'NOT_FOUND'
+        }
+    }, 404)
+})
 
 // ─── Static Assets ─────────────────────────────────────────
 

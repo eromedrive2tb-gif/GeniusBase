@@ -10,6 +10,7 @@ import { Hono } from 'hono'
 import { createAuthRouter } from '../../../utils/router'
 import { verifyPassword } from '../../../utils/crypto'
 import { generateToken } from '../../../utils/token'
+import { AuthLoginSchema } from '../../../domain/schemas'
 
 const endUserLoginRoute = createAuthRouter()
 
@@ -17,10 +18,8 @@ endUserLoginRoute.post('/', async (c) => {
     // O tenantAuth.ts já validou a API Key do Dev e e injetou o tenantId
     const tenantId = c.get('tenantId') as string
 
-    const body = await c.req.json().catch(() => null)
-    if (!body || !body.email || !body.password) {
-        return c.json({ error: 'Email and password are required' }, 400)
-    }
+    const rawBody = await c.req.json()
+    const body = AuthLoginSchema.parse(rawBody)
 
     const email = body.email.trim().toLowerCase()
     const password = body.password

@@ -9,6 +9,7 @@
 import { Hono } from 'hono'
 import { createAuthRouter } from '../../../utils/router'
 import { hashPassword } from '../../../utils/crypto'
+import { AuthRegisterSchema } from '../../../domain/schemas'
 
 const endUserRegisterRoute = createAuthRouter()
 
@@ -22,17 +23,11 @@ endUserRegisterRoute.post('/', async (c) => {
         return c.json({ error: 'Forbidden: Only service API keys can register new end-users' }, 403)
     }
 
-    const body = await c.req.json().catch(() => null)
-    if (!body || !body.email || !body.password) {
-        return c.json({ error: 'Email and password are required' }, 400)
-    }
+    const rawBody = await c.req.json()
+    const body = AuthRegisterSchema.parse(rawBody)
 
     const email = body.email.trim().toLowerCase()
     const password = body.password
-
-    if (password.length < 6) {
-        return c.json({ error: 'Password must be at least 6 characters' }, 400)
-    }
 
     // Verificar se já existe neste tenant
     const existing = await c.env.DB.prepare(
@@ -47,11 +42,11 @@ endUserRegisterRoute.post('/', async (c) => {
 
     const id = `usr_${crypto.randomUUID().replace(/-/g, '')}`
     const passwordHash = await hashPassword(password)
-    const now = Math.floor(Date.now() / 1000)
+    const now = new Date().toISOString()
 
     // CRM Identity Auto-Capture
     const customerId = `cus_${crypto.randomUUID().replace(/-/g, '')}`
-    const nameStr = typeof body.name === 'string' && body.name.trim() !== '' ? body.name.trim() : null
+    const nameStr = typeof rawBody.name === 'string' && rawBody.name.trim() !== '' ? rawBody.name.trim() : null
 
     try {
         await c.env.DB.batch([

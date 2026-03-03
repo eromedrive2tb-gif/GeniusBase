@@ -9,6 +9,7 @@
 import { Hono } from 'hono'
 import { createAuthRouter } from '../../../utils/router'
 import { apiKeyAuth } from '../../../middlewares/apiKeyAuth'
+import { ProductCreateSchema } from '../../../domain/schemas'
 
 const productsRoute = createAuthRouter()
 
@@ -45,18 +46,20 @@ productsRoute.get('/', async (c) => {
 // Create Product
 productsRoute.post('/', async (c) => {
     const tenantId = c.get('tenantId') as string
-    const body = await c.req.json()
+    const rawBody = await c.req.json()
 
-    // Ensure price and stock are treated as numbers regardless of HTMX JSON string encoding
-    const price = Number(body.price)
-    const stock = Number(body.stock) || 0
+    // Type coerce for string-based payloads (HTMX forms) before strict checking
+    const body = ProductCreateSchema.parse({
+        ...rawBody,
+        price: Number(rawBody.price),
+        stock: rawBody.stock ? Number(rawBody.stock) : undefined
+    })
 
-    if (!body.name || isNaN(price)) {
-        return c.json({ error: 'Name and a valid numeric price are required' }, 400)
-    }
+    const price = body.price
+    const stock = body.stock
 
     const id = `prod_${crypto.randomUUID().replace(/-/g, '')}`
-    const now = Math.floor(Date.now() / 1000)
+    const now = new Date().toISOString()
 
     const metadataRaw = body.metadata ? JSON.stringify(body.metadata) : null
 

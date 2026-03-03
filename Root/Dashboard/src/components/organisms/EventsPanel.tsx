@@ -86,7 +86,7 @@ export const EventsPanel = ({ events }: EventsPanelProps) => {
                         <template {...{ 'x-for': 'ev in events', ':key': 'ev.id' }}>
                             <tr>
                                 <td class="dash-table__muted" style="white-space:nowrap; font-size:0.8rem;"
-                                    {...{ 'x-text': 'new Date(ev.created_at * 1000).toLocaleString("pt-BR")' }}>
+                                    {...{ 'x-text': 'ev.created_at ? (!isNaN(new Date(ev.created_at).getTime()) ? new Date(ev.created_at).toLocaleString("pt-BR") : ev.created_at) : "—"' }}>
                                 </td>
                                 <td>
                                     <span

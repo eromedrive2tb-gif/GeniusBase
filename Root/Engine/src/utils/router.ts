@@ -1,11 +1,7 @@
 import { Hono } from 'hono'
+import type { AuthVariables } from '../types/auth'
 
-// Exporting the standard Variables expected from Auth Middlewares
-export type AuthVariables = {
-    tenantId: string
-    userId?: string
-    userRole?: string
-}
+export type { AuthVariables }
 
 /**
  * Factory for creating Hono routers with predefined environment and auth variable types.

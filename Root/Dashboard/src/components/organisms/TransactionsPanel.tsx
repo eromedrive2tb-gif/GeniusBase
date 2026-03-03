@@ -8,6 +8,8 @@
  * (PIX avulso, doações, etc). Escuta via WebSocket PUSH `TRANSACTION_COMPLETED`.
  */
 
+import { StatusBadge } from '../atoms/StatusBadge'
+
 // Script for Alpine controller — defined before x-data so Alpine can find it.
 const controllerScript = `
 function transactionsController() {
@@ -38,7 +40,7 @@ function transactionsController() {
                             status: 'COMPLETED',
                             payer_name: payload.payer_name,
                             payer_document: payload.payer_document,
-                            created_at: Math.floor(Date.now() / 1000)
+                            created_at: new Date().toISOString()
                         });
                     }
                     window.dispatchEvent(new CustomEvent('toast', { detail: '💸 PIX Avulso Recebido de ' + (payload.payer_name || 'Alguém') + '!' }));
@@ -108,15 +110,7 @@ export const TransactionsPanel = () => {
                                         x-text="txn.created_at ? (!isNaN(new Date(txn.created_at).getTime()) ? new Date(txn.created_at).toLocaleString('pt-BR') : txn.created_at) : '—'"></td>
 
                                     <td style="padding:0.65rem 0.75rem; text-align:center;">
-                                        <span
-                                            x-text="txn.status"
-                                            {...{
-                                                ':style': `txn.status === 'COMPLETED'
-                                                    ? 'background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.3);'
-                                                    : 'background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.25);'`
-                                            }}
-                                            style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:0.2rem 0.55rem; border-radius:20px; display:inline-block; transition:all 0.4s;"
-                                        ></span>
+                                        <StatusBadge status="txn.status" isAlpine={true} />
                                     </td>
 
                                     <td style="padding:0.65rem 0.75rem; color:var(--gb-text-muted);">

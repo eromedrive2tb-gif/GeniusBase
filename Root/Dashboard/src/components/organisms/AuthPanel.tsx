@@ -107,7 +107,7 @@ export const AuthPanel = ({ users }: AuthPanelProps) => {
                                 </td>
                                 <td {...{ 'x-text': 'u.email' }}></td>
                                 <td class="dash-table__muted"
-                                    {...{ 'x-text': 'new Date(u.created_at * 1000).toLocaleString("pt-BR")' }}>
+                                    {...{ 'x-text': 'dateTime(u.created_at)' }}>
                                 </td>
                                 <td style="text-align: center;">
                                     <button
@@ -133,7 +133,15 @@ export const AuthPanel = ({ users }: AuthPanelProps) => {
                         loadingUser: false,
                         userError: '',
 
-                        async init() {
+                        dateTime(raw) {
+            if (!raw) return '—'
+            try {
+                const d = new Date(raw)
+                return isNaN(d) ? raw : d.toLocaleString('pt-BR')
+            } catch { return raw }
+        },
+
+        async init() {
                             // Data hydrated via SSR — no RPC call needed on load.
                             // Listen for domain events from peer sessions.
                             window.addEventListener('rpc_push', (e) => {

@@ -61,7 +61,7 @@ const createUser: RpcHandler = async ({ payload, tenantId, env, broadcast }) => 
     const passwordHash = `${saltHex}:${hashHex}`
 
     const id = `usr_${crypto.randomUUID().replace(/-/g, '')}`
-    const now = Math.floor(Date.now() / 1000)
+    const now = new Date().toISOString()
 
     await env.DB.prepare(
         'INSERT INTO tenant_users (id, tenant_id, email, password_hash, created_at) VALUES (?, ?, ?, ?, ?)'
@@ -109,7 +109,7 @@ const createCustomer: RpcHandler = async ({ payload, tenantId, env, broadcast })
     if (!name) throw new Error('O nome do cliente é obrigatório.')
 
     const id = `cus_${crypto.randomUUID().replace(/-/g, '')}`
-    const now = Math.floor(Date.now() / 1000)
+    const now = new Date().toISOString()
 
     await env.DB.prepare(
         'INSERT INTO customers (id, tenant_id, name, email, created_at) VALUES (?, ?, ?, ?, ?)'
@@ -142,7 +142,7 @@ const createProduct: RpcHandler = async ({ payload, tenantId, env, broadcast }) 
     }
 
     const id = `prod_${crypto.randomUUID().replace(/-/g, '')}`
-    const now = Math.floor(Date.now() / 1000)
+    const now = new Date().toISOString()
 
     await env.DB.prepare(
         'INSERT INTO products (id, tenant_id, name, price, stock, created_at) VALUES (?, ?, ?, ?, ?, ?)'
@@ -243,7 +243,7 @@ const saveGateway: RpcHandler = async ({ payload, tenantId, env }) => {
 
     const id = `gw_${crypto.randomUUID().replace(/-/g, '')}`
     const credentialsStr = JSON.stringify(credentials)
-    const now = Math.floor(Date.now() / 1000)
+    const now = new Date().toISOString()
 
     await env.DB.prepare(
         `INSERT INTO tenant_gateways (id, tenant_id, provider, credentials, is_active, updated_at)
