@@ -1,6 +1,6 @@
 -- ──────────────────────────────────────────────────────────────────────────────
 -- Migration 0007: E-commerce Core — Orders, Order Items, Transactions
--- Root/Engine/0007_ecommerce_core.sql
+-- Root/Engine/src/db/migrations/0007_ecommerce_core.sql
 --
 -- Replaces the flat tenant_charges model with a fully relational e-commerce
 -- schema that associates payments to structured orders and line items.
