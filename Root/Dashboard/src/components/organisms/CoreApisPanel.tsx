@@ -76,7 +76,7 @@ export const CoreApisPanel = () => {
             <div class="neon-card__endpoint">GET /api/v1/customers</div>
             <div class="neon-card__endpoint">POST /api/v1/customers</div>
             <p class="neon-card__desc">
-              Gerencie os clientes finais das suas aplicações. Payloads POST em JSON com <code>name</code> e <code>email</code>.
+              Gerencie os clientes finais das suas aplicações. Payloads POST em JSON com <code>name</code>, <code>email</code> e propriedades flexíveis `metadata`.
             </p>
             <span class="badge badge--active">
               <span class="badge--dot"></span> Ativo
@@ -92,7 +92,7 @@ export const CoreApisPanel = () => {
             <div class="neon-card__endpoint">GET /api/v1/products</div>
             <div class="neon-card__endpoint">POST /api/v1/products</div>
             <p class="neon-card__desc">
-              Catálogo ágil. Payloads POST em JSON aceitam <code>name</code>, <code>price</code> (centavos) e <code>stock</code>.
+              Catálogo ágil. Payloads POST em JSON aceitam <code>name</code>, <code>price</code> (centavos), <code>stock</code> e propriedades flexíveis `metadata`.
             </p>
             <span class="badge badge--active">
               <span class="badge--dot"></span> Ativo
@@ -107,7 +107,7 @@ export const CoreApisPanel = () => {
             </div>
             <div class="neon-card__endpoint">GET /api/v1/realtime</div>
             <p class="neon-card__desc">
-              Túnel de eventos públicos via WebSocket. Conecte-se passando a Service API Key como query param.
+              Túnel de eventos públicos via WebSocket. Conecte-se passando a Service Key, a Anon Key ou End-User JWT como query param.
               Receba broadcasts em tempo real do BaaS direto no cliente.
             </p>
             <pre style="background:#0f172a; border:1px solid #1e293b; border-radius:4px; padding:0.6rem 0.75rem; font-size:0.72rem; color:#94a3b8; margin:0.5rem 0; overflow-x:auto;">{`// SDK
@@ -153,7 +153,7 @@ Authorization: Bearer <SUA_SERVICE_KEY>
             </div>
             <div class="neon-card__endpoint">POST /api/v1/transactions</div>
             <p class="neon-card__desc">
-              Crie cobranças diretas e doações (Standalone PIX) sem precisar criar um Pedido (Carrinho). O Gateway processa o QR Code instantaneamente.
+              Crie cobranças diretas e doações. Suporta Guest Checkout (compras sem login) usando a <strong>Public Anon Key</strong>. Rate Limiter ativo para proteção Anti-Spam.
             </p>
             <span class="badge badge--active">
               <span class="badge--dot"></span> Ativo (Fase 15)
@@ -186,8 +186,8 @@ Authorization: Bearer <SUA_SERVICE_KEY>
           <div class="neon-card__endpoint">POST /api/v1/orders</div>
           <div class="neon-card__endpoint">POST /api/v1/transactions</div>
           <p class="neon-card__desc">
-            Crie Pedidos completos (com carrinho e validação de preços via IDs) ou Transações Avulsas (doações/cobranças diretas).
-            A Gateway externa processa e envia o webhook de confirmação para o BaaS, que dispara <code>ORDER_PAID</code> ou <code>TRANSACTION_COMPLETED</code>.
+            Crie Pedidos completos ou Transações Avulsas. <strong>Guest Checkout habilitado</strong>. Metadados dinâmicos e flexíveis permitidos (`metadata`).
+            A Gateway externa envia o webhook de confirmação para o BaaS, mapeia e-mails, abastece passivamente o CRM e dispara <code>ORDER_PAID</code>.
           </p>
           <pre style="background:#0f172a; border:1px solid #1e293b; border-radius:4px; padding:0.6rem 0.75rem; font-size:0.72rem; color:#94a3b8; margin:0.5rem 0; overflow-x:auto;">{`POST /api/v1/orders
 Authorization: Bearer <SERVICE_KEY>

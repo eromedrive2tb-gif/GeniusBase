@@ -48,8 +48,8 @@ export const baasApiDocs: ApiDocEntry[] = [
     {
         method: 'POST',
         path: '/api/v1/customers',
-        description: 'Cadastra um novo cliente no CRM do Tenant para vinculação futura com compras.',
-        request: `// Equivalente SDK:\nawait gb.from('customers').insert({ name: "Jane Smith", email: "jane@smith.com" })\n\n// HTTP Nativo:\n{\n  "name": "Jane Smith",\n  "email": "jane@smith.com"\n}`,
+        description: 'Cadastra um novo cliente no CRM do Tenant para vinculação com compras ou captura passiva. Suporta campos customizáveis via `metadata`.',
+        request: `// Equivalente SDK:\nawait gb.from('customers').insert({\n  name: "Jane",\n  email: "jane@smith.com",\n  metadata: { "source": "instagram" }\n})\n\n// HTTP Nativo:\n{\n  "name": "Jane Smith",\n  "email": "jane@smith.com",\n  "metadata": {\n     "source": "instagram"\n  }\n}`,
         responses: []
     },
     {
@@ -62,8 +62,8 @@ export const baasApiDocs: ApiDocEntry[] = [
     {
         method: 'POST',
         path: '/api/v1/products',
-        description: 'Insere um novo produto no catálogo do Tenant.',
-        request: `// Equivalente SDK:\nawait gb.from('products').insert({ name: "Produto Teste", price: 45000, stock: 10 })\n\n// HTTP Nativo:\n{\n  "name": "Mesa Digitalizadora",\n  "price": 45000,\n  "stock": 10\n}`,
+        description: 'Insere um novo produto no catálogo do Tenant, suportando campos customizáveis `metadata`.',
+        request: `// Equivalente SDK:\nawait gb.from('products').insert({\n  name: "Produto Teste",\n  price: 45000,\n  stock: 10,\n  metadata: { "color": "red" }\n})\n\n// HTTP Nativo:\n{\n  "name": "Produto",\n  "price": 45000,\n  "stock": 10,\n  "metadata": { "color": "red" }\n}`,
         responses: []
     },
     {
@@ -90,25 +90,27 @@ export const baasApiDocs: ApiDocEntry[] = [
     {
         method: 'POST',
         path: '/api/v1/orders',
-        description: 'Cria um Checkout transacional (Pedido) convertendo itens num PIX consolidado buscando preços reais no banco de dados. Quando o pagamento for confirmado, emitirá ORDER_PAID.',
-        request: `// Equivalente SDK:\nconst pedido = await gb.orders.checkout({\n  provider: 'openpix',\n  items: [{ product_id: 'prod_abc', quantity: 2 }]\n})\n\n// Escute o resultado via SDK:\ngb.channel(\'loja\')\n  .on(\'ORDER_PAID\', (pedido) => console.log(\'Pedido pago!\', pedido))\n  .subscribe()`,
+        description: 'Cria um Checkout transacional (Pedido) convertendo itens num PIX consolidado buscando preços reais no banco de dados. Rate Limiting incluso (5/hora) para requisições anônimas. Suporta `metadata`.',
+        request: `// Equivalente SDK (suporta "anon" ou "service" keys):\nconst pedido = await gb.orders.checkout({\n  provider: 'openpix',\n  metadata: { campanha: 'blackfriday' },\n  items: [{ product_id: 'prod_abc', quantity: 2 }]\n})\n\n// Escute o resultado via SDK:\ngb.channel(\'loja\')\n  .on(\'ORDER_PAID\', (pedido) => console.log(\'Pedido pago!\', pedido))\n  .subscribe()`,
         responses: [
             { status: 201, label: 'Pedido criado. Retorna order_id, transaction_id, brCode (QR Pix) e itens com preços congelados.', color: 'var(--gb-green)' },
             { status: 400, label: 'Bad Request: items inválidos ou provider ausente.', color: 'var(--gb-amber)' },
-            { status: 401, label: 'Unauthorized: token ausente, expirado ou sem role "service".', color: 'var(--gb-red)' },
+            { status: 401, label: 'Unauthorized: token ausente ou expirado.', color: 'var(--gb-red)' },
             { status: 422, label: 'Unprocessable: produto não encontrado ou gateway não configurada.', color: 'var(--gb-amber)' },
+            { status: 429, label: 'Too Many Requests: limite de criação anônima excedido.', color: 'var(--gb-red)' },
             { status: 502, label: 'Bad Gateway: a gateway de pagamento retornou erro.', color: 'var(--gb-red)' }
         ]
     },
     {
         method: 'POST',
         path: '/api/v1/transactions',
-        description: 'Cria uma cobrança financeira desconectada de produtos (Gorjetas, Doações, Pagamentos dinâmicos avulsos). Quando a confirmação chegar, emitirá TRANSACTION_COMPLETED com os dados do pagador.',
-        request: `// Equivalente SDK (Amount em centavos):\nconst txn = await gb.transactions.create({\n  amount: 5000,\n  provider: 'openpix'\n})\n\n// Escute o resultado via SDK:\ngb.channel(\'loja\')\n  .on(\'TRANSACTION_COMPLETED\', (txn) => console.log('Doação recebida!', txn))\n  .subscribe()`,
+        description: 'Cria cobranças avulsas (Gorjetas, Doações). Acessível de forma anônima (Guest Checkout). Rate Limit contra SPAM incluso. Suporta `metadata` de forma flexível.',
+        request: `// Equivalente SDK (Amount em centavos):\nconst txn = await gb.transactions.create({\n  amount: 5000,\n  provider: 'openpix',\n  metadata: { motivo: "doacao" }\n})\n\n// Escute o resultado via SDK:\ngb.channel(\'loja\')\n  .on(\'TRANSACTION_COMPLETED\', (txn) => console.log('Doação recebida!', txn))\n  .subscribe()`,
         responses: [
             { status: 201, label: 'Transação criada. Retorna transaction_id, provider_transaction_id e brCode (QR Pix).', color: 'var(--gb-green)' },
             { status: 400, label: 'Bad Request: valor menor ou igual a 0 ou provider ausente.', color: 'var(--gb-amber)' },
-            { status: 401, label: 'Unauthorized: token ausente, expirado ou sem role "service".', color: 'var(--gb-red)' },
+            { status: 401, label: 'Unauthorized: token ausente ou expirado.', color: 'var(--gb-red)' },
+            { status: 429, label: 'Too Many Requests: limite de criação anônima excedido.', color: 'var(--gb-red)' },
             { status: 502, label: 'Bad Gateway: a gateway de pagamento retornou erro.', color: 'var(--gb-red)' }
         ]
     },
@@ -134,7 +136,7 @@ export const baasApiDocs: ApiDocEntry[] = [
     {
         method: 'POST',
         path: '/api/v1/payments/webhooks/:provider',
-        description: 'Endpoint público chamado pela Gateway após confirmar um pagamento. O GeniusBase processa o evento e atualiza a transação para COMPLETED (salvando nome e doc do pagador). Se for um pedido de loja, emite ORDER_PAID. De qualquer forma, sempre emite TRANSACTION_COMPLETED via WebSocket. Tudo automático.',
+        description: 'Endpoint público chamado pela Gateway após confirmar pagamento. O GeniusBase processa, salva nome e CNPJ/CPF/e-mail (se retornados) para CRM Passivo. Emite TRANSACTION_COMPLETED/ORDER_PAID via WebSocket.',
         request: `// ⚠️ Configure na Woovi/OpenPix como URL de Webhook:\nhttps://SEU_WORKER.workers.dev/api/v1/payments/webhooks/openpix\n\n// O payload enviado pela Woovi (automático):\n{\n  "event": "OPENPIX:CHARGE_COMPLETED",\n  "charge": {\n    "correlationID": "ord_abc123",\n    "status": "COMPLETED"\n  }\n}`,
         responses: [
             { status: 200, label: 'OK: evento processado. Pedido/Transação atualizado para PAID.', color: 'var(--gb-green)' }

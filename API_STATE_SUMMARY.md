@@ -27,9 +27,9 @@ Este documento contém o escaneamento exato das rotas públicas localizadas em `
 
 ### `POST /api/v1/products`
 * **Autenticação:** apiKeyAuth (Service API Key ou End-User JWT)
-* **Intenção:** Inserir um novo produto no catálogo do Tenant.
-* **Payload Esperado (Body):** `{ "name": "Camiseta", "price": 9900, "stock": 10 }`
-* **Equivalente no SDK:** `gb.from('products').insert({ name, price, stock })`
+* **Intenção:** Inserir um novo produto no catálogo do Tenant suportando campos customizáveis via `metadata`.
+* **Payload Esperado (Body):** `{ "name": "Camiseta", "price": 9900, "stock": 10, "metadata": { "color": "red" } }`
+* **Equivalente no SDK:** `gb.from('products').insert({ name, price, stock, metadata })`
 
 ### `GET /api/v1/customers`
 * **Autenticação:** apiKeyAuth (Service API Key ou End-User JWT)
@@ -39,9 +39,9 @@ Este documento contém o escaneamento exato das rotas públicas localizadas em `
 
 ### `POST /api/v1/customers`
 * **Autenticação:** apiKeyAuth (Service API Key ou End-User JWT)
-* **Intenção:** Cadastrar um novo cliente no CRM do Tenant para vinculação futura com compras.
-* **Payload Esperado (Body):** `{ "name": "João da Silva", "email": "joao@example.com" }`
-* **Equivalente no SDK:** `gb.from('customers').insert({ name, email })`
+* **Intenção:** Cadastrar um novo cliente no CRM do Tenant para vinculação com compras ou captura passiva. Suporta campos customizáveis via `metadata`.
+* **Payload Esperado (Body):** `{ "name": "João da Silva", "email": "joao@example.com", "metadata": { "source": "instagram" } }`
+* **Equivalente no SDK:** `gb.from('customers').insert({ name, email, metadata })`
 
 
 ## 3. Telemetria e Eventos (`api/v1/events.ts`)
@@ -56,10 +56,10 @@ Este documento contém o escaneamento exato das rotas públicas localizadas em `
 ## 4. Ecossistema Financeiro: Pedidos e E-Commerce (`api/v1/orders.ts`)
 
 ### `POST /api/v1/orders`
-* **Autenticação:** apiKeyAuth (Role exigida: Service)
-* **Intenção:** Criar um Checkout transacional (Pedido) convertendo uma lista de items num PIX consolidado buscando preços reais no banco.
-* **Payload Esperado (Body):** `{ "provider": "openpix", "items": [{ "product_id": "prod_123", "quantity": 1 }], "customer_id": "cus_456" }` *(O customer_id é opcional)*
-* **Equivalente no SDK:** `gb.orders.checkout({ items, provider, customer_id })`
+* **Autenticação:** apiKeyAuth (Roles permitidas: `service` ou `anon` via Guest Checkout RLS)
+* **Intenção:** Criar um Checkout transacional convertendo uma lista de items num PIX consolidado buscando preços reais no banco. Suporta `metadata` na raiz. Rate Limit de 5/ip por hora ativado para anônimos.
+* **Payload Esperado (Body):** `{ "provider": "openpix", "items": [{ "product_id": "prod_123", "quantity": 1 }], "customer_id": "cus_456", "metadata": { "campanha": "blackfriday" } }` *(O customer_id é opcional)*
+* **Equivalente no SDK:** `gb.orders.checkout({ items, provider, customer_id, metadata })`
 
 ### `GET /api/v1/orders/:id`
 * **Autenticação:** apiKeyAuth (Role exigida: Service)
@@ -71,9 +71,9 @@ Este documento contém o escaneamento exato das rotas públicas localizadas em `
 ## 5. Ecossistema Financeiro: Transações Avulsas (`api/v1/transactions.ts`)
 
 ### `POST /api/v1/transactions`
-* **Autenticação:** apiKeyAuth (Role exigida: `service`)
-* **Intenção:** Criar uma cobrança financeira desconectada de produtos (Gorjetas, Doações, Pagamentos dinâmicos avulsos).
-* **Payload Esperado (Body):** `{ "amount": 5000, "provider": "openpix", "customer_id": "cus_123", "metadata": {} }` *(Amount em centavos)*
+* **Autenticação:** apiKeyAuth (Roles permitidas: `service` ou `anon`)
+* **Intenção:** Criar uma cobrança financeira desconectada de produtos (Gorjetas, Doações, Pagamentos dinâmicos avulsos). Rate limit ativo contra spam.
+* **Payload Esperado (Body):** `{ "amount": 5000, "provider": "openpix", "customer_id": "cus_123", "metadata": { "reason": "donation" } }` *(Amount em centavos)*
 * **Equivalente no SDK:** `gb.transactions.create({ amount, provider, customer_id, metadata })`
 
 
@@ -81,8 +81,8 @@ Este documento contém o escaneamento exato das rotas públicas localizadas em `
 
 ### `POST /api/v1/payments/webhooks/:provider`
 * **Autenticação:** Pública (Webhook Callback Endpoint)
-* **Intenção:** Receber os avisos de `CHARGE_COMPLETED` enviados pelas plataformas de pagamento (Woovi, Stripe) e atualizar o Banco e WebSockets.
-* **Payload Esperado (Body):** *[Payload dinâmico da Gateway que contém ID do Charge e infos do Cliente]*
+* **Intenção:** Receber os avisos de `CHARGE_COMPLETED` enviados pelas plataformas de pagamento (Woovi, Stripe) e atualizar o Banco e WebSockets. Cria clientes passivamente (CRM) a partir do e-mail retornado na carga útil, se não existirem.
+* **Payload Esperado (Body):** *[Payload da Gateway que contém ID do Charge, valor, e info/e-mail do Cliente]*
 * **Equivalente no SDK:** N/A (Backend → Backend Exclusivo)
 
 ### `POST /api/v1/payments/charges`
