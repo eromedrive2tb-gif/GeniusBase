@@ -22,6 +22,18 @@ export const DocsPanel = () => {
                 </div>
             </div>
 
+            {/* ─── 🚨 Security Alert ────────────────────────────────── */}
+            <div class="doc-section" style="margin-bottom: 2rem;">
+                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; padding: 1.25rem 1.5rem;">
+                    <h3 style="font-size: 0.95rem; font-weight: 700; color: #ef4444; margin: 0 0 0.5rem;">
+                        ⚠️ Regra de Ouro do GeniusBase: Service API Key vs End-User JWT
+                    </h3>
+                    <p style="font-size: 0.85rem; color: #f8fafc; margin: 0; line-height: 1.5;">
+                        A sua <strong>Service API Key</strong> (exibida na aba APIs Principais) tem poder total sobre o seu banco de dados e deve ser usada <strong>APENAS</strong> em servidores (Backend) ou via SDK Server-Side. Para o Frontend dos seus clientes/usuários finais, utilize sempre o <strong>End-User JWT</strong> gerado via <code>/api/v1/auth/login</code>. Nunca exponha sua Service API Key no frontend público!
+                    </p>
+                </div>
+            </div>
+
             {/* ─── 🚨 Webhook Guide ────────────────────────────────── */}
             <div class="doc-section" style="margin-bottom: 2rem;">
                 <div style="background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.35); border-radius: 8px; padding: 1.25rem 1.5rem;">

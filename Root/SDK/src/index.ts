@@ -34,6 +34,7 @@ import { EventsClient } from './events'
 import { PaymentsClient } from './payments'
 import { OrdersClient } from './orders'
 import { TransactionsClient } from './transactions'
+import { StorageClient } from './storage'
 
 export type { AuthResponse, Session, UserRecord } from './auth'
 export type { QueryResponse } from './database'
@@ -48,6 +49,8 @@ export { PaymentsClient } from './payments'
 export { OrdersClient } from './orders'
 export { TransactionsClient } from './transactions'
 export type { TransactionCheckoutData } from './transactions'
+export { StorageClient } from './storage'
+export type { StorageFile } from './storage'
 
 // ─── GeniusBaseClient ──────────────────────────────────────
 
@@ -73,6 +76,9 @@ class GeniusBaseClient {
     /** Create standalone transactions (no cart/items) like donations */
     readonly transactions: TransactionsClient
 
+    /** Upload and manage files in the Cloudflare R2 bucket */
+    readonly storage: StorageClient
+
     constructor(baseUrl: string, apiKey: string) {
         // Trim trailing slash for consistent URL construction
         const url = baseUrl.replace(/\/$/, '')
@@ -84,6 +90,7 @@ class GeniusBaseClient {
         this.payments = new PaymentsClient(url, apiKey)
         this.orders = new OrdersClient(url, apiKey)
         this.transactions = new TransactionsClient(url, apiKey)
+        this.storage = new StorageClient(url, apiKey)
     }
 
     /**

@@ -272,6 +272,47 @@ const fetchTransactions: RpcHandler = async ({ tenantId, env }) => {
     return results ?? []
 }
 
+// ── Storage (Cloudflare R2) ───────────────────────────────────
+
+const fetchFiles: RpcHandler = async ({ tenantId, env }) => {
+    const { results } = await env.DB.prepare(
+        `SELECT id, filename, mime_type, size_bytes, public_url, created_at
+         FROM tenant_files
+         WHERE tenant_id = ?
+         ORDER BY created_at DESC LIMIT 50`
+    ).bind(tenantId).all()
+    return results ?? []
+}
+
+const deleteFile: RpcHandler = async ({ payload, tenantId, env, broadcast }) => {
+    const id = (typeof payload['id'] === 'string' ? payload['id'] : '').trim()
+    if (!id) throw new Error('ID do arquivo é obrigatório.')
+
+    // 1. Validate ownership and get R2 bucket_path
+    const fileRow = await env.DB.prepare(
+        `SELECT bucket_path FROM tenant_files WHERE id = ? AND tenant_id = ?`
+    ).bind(id, tenantId).first<{ bucket_path: string }>()
+
+    if (!fileRow) {
+        throw new Error('Arquivo não encontrado neste tenant.')
+    }
+
+    // 2. Delete physical object from R2 Storage
+    try {
+        await env.R2_STORAGE.delete(fileRow.bucket_path)
+    } catch (err: any) {
+        throw new Error(`Erro ao deletar arquivo no R2: ${err.message}`)
+    }
+
+    // 3. Delete metadata from D1
+    await env.DB.prepare(
+        `DELETE FROM tenant_files WHERE id = ? AND tenant_id = ?`
+    ).bind(id, tenantId).run()
+
+    broadcast('FILE_DELETED', { id })
+    return { deleted: true, id }
+}
+
 // ── Command Registry ────────────────────────────────────────────────
 
 export const commandRegistry: Record<string, RpcHandler> = {
@@ -303,4 +344,8 @@ export const commandRegistry: Record<string, RpcHandler> = {
 
     // Standalone Transactions (Phase 15+)
     FETCH_TRANSACTIONS: fetchTransactions,
+
+    // Storage Files (Phase 17+)
+    FETCH_FILES: fetchFiles,
+    DELETE_FILE: deleteFile,
 }

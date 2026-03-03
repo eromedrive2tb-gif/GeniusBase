@@ -18,6 +18,7 @@ import { DocsPanel } from '../components/organisms/DocsPanel'
 import { EventsPanel } from '../components/organisms/EventsPanel'
 import { OrdersPanel } from '../components/organisms/OrdersPanel'
 import { TransactionsPanel } from '../components/organisms/TransactionsPanel'
+import { StoragePanel } from '../components/organisms/StoragePanel'
 
 type HomeProps = {
   users: any[]
@@ -38,6 +39,7 @@ export const Home = ({ users, customers, products, events }: HomeProps) => {
       <DatabasePanel customers={customers} products={products} />
       <EventsPanel events={events} />
       <TransactionsPanel />
+      <StoragePanel />
       <GatewaysPanel />
       <DocsPanel />
       <OrdersPanel />

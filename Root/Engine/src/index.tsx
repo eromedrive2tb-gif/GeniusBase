@@ -23,9 +23,11 @@ import { eventsRoute } from './api/v1/events'
 import { paymentsRoute } from './api/v1/payments'
 import { ordersRoute } from './api/v1/orders'
 import { transactionsRoute } from './api/v1/transactions'
+import { storageRoute } from './api/v1/storage'
 import { internalDashboardRoute } from './api/internal/dashboard'
 import { apiKeysRoute } from './api/internal/apikeys'
 import { internalRealtimeRoute } from './api/internal/realtime'
+import { internalStorageRoute } from './api/internal/storage'
 
 // CSS imports (raw text for static serving)
 import authCss from '../../Dashboard/src/styles/auth.css'
@@ -78,6 +80,7 @@ app.route('/api/auth', authRoutes)
 app.route('/api/auth/me', meRoute)
 app.route('/api/internal/apikeys', apiKeysRoute)
 app.route('/api/internal/realtime', internalRealtimeRoute)
+app.route('/api/internal/storage', internalStorageRoute)
 
 // ─── Public BaaS API (End-User / Tenant Service) ───────────
 // CORS: Tenant apps run on different origins (e.g. localhost:3000, tenant.com).
@@ -99,6 +102,7 @@ app.route('/api/v1/payments', paymentsRoute)
 app.route('/api/v1/orders', ordersRoute)
 app.route('/api/v1/transactions', transactionsRoute)
 app.route('/api/v1/realtime', realtimeRoute)
+app.route('/api/v1/storage', storageRoute)
 
 // ─── HTMX Utility Endpoint ─────────────────────────────────
 

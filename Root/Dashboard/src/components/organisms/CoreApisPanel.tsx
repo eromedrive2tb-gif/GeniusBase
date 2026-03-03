@@ -159,10 +159,26 @@ Authorization: Bearer <SUA_SERVICE_KEY>
               <span class="badge--dot"></span> Ativo (Fase 15)
             </span>
           </div>
+
+          {/* Storage Card */}
+          <div class="neon-card">
+            <div class="neon-card__header">
+              <span class="neon-card__title">Storage Público (CDN R2)</span>
+              <span class="neon-card__icon">📁</span>
+            </div>
+            <div class="neon-card__endpoint">POST /api/v1/storage/upload</div>
+            <div class="neon-card__endpoint">GET /api/v1/storage/public/:id</div>
+            <p class="neon-card__desc">
+              Upload e hospedagem isolada de mídias (Imagens, PDFs). O arquivo é fisicamente armazenado no Cloudflare R2 e distribuído através de uma CDN global.
+            </p>
+            <span class="badge badge--active">
+              <span class="badge--dot"></span> Ativo (Fase 17)
+            </span>
+          </div>
         </div>
 
-        {/* Payments / PIX Card */}
-        <div class="neon-card">
+        {/* Payments / Checkouts Card */}
+        <div class="neon-card" style="margin-top: 1.5rem;">
           <div class="neon-card__header">
             <span class="neon-card__title">Pagamentos (E-commerce e Avulso)</span>
             <span class="neon-card__icon">💳</span>
@@ -170,8 +186,8 @@ Authorization: Bearer <SUA_SERVICE_KEY>
           <div class="neon-card__endpoint">POST /api/v1/orders</div>
           <div class="neon-card__endpoint">POST /api/v1/transactions</div>
           <p class="neon-card__desc">
-            Crie Pedidos completos (com carrênho e validação de preços) ou Transações Avulsas (doações/cobranças diretas).
-            A Gateway envia o webhook de confirmação para o BaaS, que dispara <code>ORDER_PAID</code> ou <code>TRANSACTION_COMPLETED</code>.
+            Crie Pedidos completos (com carrinho e validação de preços via IDs) ou Transações Avulsas (doações/cobranças diretas).
+            A Gateway externa processa e envia o webhook de confirmação para o BaaS, que dispara <code>ORDER_PAID</code> ou <code>TRANSACTION_COMPLETED</code>.
           </p>
           <pre style="background:#0f172a; border:1px solid #1e293b; border-radius:4px; padding:0.6rem 0.75rem; font-size:0.72rem; color:#94a3b8; margin:0.5rem 0; overflow-x:auto;">{`POST /api/v1/orders
 Authorization: Bearer <SERVICE_KEY>

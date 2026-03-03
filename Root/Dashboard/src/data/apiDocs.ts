@@ -20,8 +20,8 @@ export const baasApiDocs: ApiDocEntry[] = [
     {
         method: 'POST',
         path: '/api/v1/auth/register',
-        description: 'Registra um novo End-User (usuário final) no seu aplicativo, atrelado ao seu Tenant.',
-        request: `{\n  "email": "user@app.com",\n  "password": "securepassword"\n}`,
+        description: 'Cria um End-User (usuário final) na base do seu Tenant (Signup anônimo/frontend intermediado pelo backend da loja/app).',
+        request: `// Equivalente SDK:\ngb.auth.register('user@app.com', 'securepassword')\n\n// HTTP Nativo:\n{\n  "email": "user@app.com",\n  "password": "securepassword"\n}`,
         responses: [
             { status: 201, label: 'Criado: retorna os dados iniciais do usuário.', color: 'var(--gb-green)' },
             { status: 400, label: 'Bad Request (senha muito curta ou falta email).', color: 'var(--gb-amber)' },
@@ -31,8 +31,8 @@ export const baasApiDocs: ApiDocEntry[] = [
     {
         method: 'POST',
         path: '/api/v1/auth/login',
-        description: 'Autentica um End-User existente na sua aplicação e retorna um Token JWT de End-User.',
-        request: `{\n  "email": "user@app.com",\n  "password": "securepassword"\n}`,
+        description: 'Autentica um End-User a partir das credenciais, gerando um End-User JWT seguro para ele utilizar nas chamadas do frontend.',
+        request: `// Equivalente SDK:\nconst jwt = await gb.auth.login('user@app.com', 'securepass')\n\n// HTTP Nativo:\n{\n  "email": "user@app.com",\n  "password": "securepassword"\n}`,
         responses: [
             { status: 200, label: 'OK: (Retorna o Token JWT daquele End-User).', color: 'var(--gb-green)' },
             { status: 401, label: 'Unauthorized: Credenciais incorretas.', color: 'var(--gb-red)' }
@@ -41,36 +41,36 @@ export const baasApiDocs: ApiDocEntry[] = [
     {
         method: 'GET',
         path: '/api/v1/customers',
-        description: 'Lista todos os clientes registrados no seu CRM/Tenant ordenados de forma decrescente.',
-        responseCode: `{\n  "data": [\n    { "id": "cus_1234", "name": "John Doe", "email": "john@doe.com" }\n  ]\n}`,
+        description: 'Lista os clientes registrados no seu CRM/Tenant.',
+        request: `// Equivalente SDK:\nawait gb.from('customers').select()`,
         responses: []
     },
     {
         method: 'POST',
         path: '/api/v1/customers',
-        description: 'Cria um novo cliente no CRM do seu Tenant.',
-        request: `{\n  "name": "Jane Smith",\n  "email": "jane@smith.com"\n}`,
+        description: 'Cadastra um novo cliente no CRM do Tenant para vinculação futura com compras.',
+        request: `// Equivalente SDK:\nawait gb.from('customers').insert({ name: "Jane Smith", email: "jane@smith.com" })\n\n// HTTP Nativo:\n{\n  "name": "Jane Smith",\n  "email": "jane@smith.com"\n}`,
         responses: []
     },
     {
         method: 'GET',
         path: '/api/v1/products',
         description: 'Lista todos os produtos ativos do Catálogo do seu Tenant.',
-        responseCode: `{\n  "data": [\n    { "id": "prod_1234", "name": "Plano Premium", "price": 9900 }\n  ]\n}`,
+        request: `// Equivalente SDK:\nawait gb.from('products').select()`,
         responses: []
     },
     {
         method: 'POST',
         path: '/api/v1/products',
-        description: 'Cria um novo produto no seu Catálogo.',
-        request: `{\n  "name": "Mesa Digitalizadora",\n  "price": 45000,\n  "stock": 10\n}`,
+        description: 'Insere um novo produto no catálogo do Tenant.',
+        request: `// Equivalente SDK:\nawait gb.from('products').insert({ name: "Produto Teste", price: 45000, stock: 10 })\n\n// HTTP Nativo:\n{\n  "name": "Mesa Digitalizadora",\n  "price": 45000,\n  "stock": 10\n}`,
         responses: []
     },
     {
         method: 'GET',
         path: '/api/v1/realtime',
-        description: 'Abre um túnel WebSocket público. Conecte-se passando a Service API Key como query param `?token=`. O servidor enviará broadcasts de eventos (ex: PRODUCT_CREATED) para todos os clientes conectados deste Tenant.',
-        request: `// SDK GeniusBase (recomendado)\ngb.channel('meu-canal')\n  .on('PRODUCT_CREATED', (payload) => console.log(payload))\n  .subscribe()\n\n// WebSocket nativo\nconst ws = new WebSocket(\n  'wss://seu-worker.workers.dev/api/v1/realtime?token=<SUA_SERVICE_KEY>'\n)\nws.onmessage = (e) => {\n  const { type, event, payload } = JSON.parse(e.data)\n  if (type === 'PUSH') console.log(event, payload)\n}`,
+        description: 'Abre um túnel WebSocket público. Conecte-se passando a Service API Key (ou End-User JWT) como query param `?token=`. O servidor enviará broadcasts de eventos (ex: PRODUCT_CREATED) para todos os clientes conectados deste Tenant.',
+        request: `// Equivalente SDK (O SDK cria o túnel automaticamente assim que invocado):\ngb.channel('meu-canal')\n  .on('PRODUCT_CREATED', (payload) => console.log(payload))\n  .subscribe()\n\n// WebSocket nativo\nconst ws = new WebSocket(\n  'wss://seu-worker.workers.dev/api/v1/realtime?token=<SEU_TOKEN>'\n)\nws.onmessage = (e) => {\n  const { type, event, payload } = JSON.parse(e.data)\n  if (type === 'PUSH') console.log(event, payload)\n}`,
         responses: [
             { status: 101, label: 'Switching Protocols: conexão WebSocket estabelecida.', color: 'var(--gb-green)' },
             { status: 401, label: 'Unauthorized: token ausente ou inválido.', color: 'var(--gb-red)' }
@@ -79,8 +79,8 @@ export const baasApiDocs: ApiDocEntry[] = [
     {
         method: 'POST',
         path: '/api/v1/events',
-        description: 'Dispara um evento customizado (telemetria) do seu app. O GeniusBase persiste no D1 e notifica o Admin Dashboard em tempo real via WebSocket. Use para rastrear métricas, logs de ações e qualquer evento de negócio.',
-        request: `{\n  "name": "Compra PIX",\n  "payload": {\n    "valor": 150.00,\n    "metodo": "pix",\n    "pedido_id": "ORD-789"\n  }\n}`,
+        description: 'Dispara de forma livre eventos analíticos (telemetria) do frontend para notificar a Dashboard em tempo real. O GeniusBase persiste no D1 e notifica via WebSocket.',
+        request: `// Equivalente SDK:\nawait gb.events.track('Compra PIX', { valor: 150.00, metodo: 'pix' })\n\n// HTTP Nativo:\n{\n  "name": "Compra PIX",\n  "payload": {\n    "valor": 150.00,\n    "metodo": "pix",\n    "pedido_id": "ORD-789"\n  }\n}`,
         responses: [
             { status: 201, label: 'Criado: evento persistido e broadcast enviado ao Dashboard.', color: 'var(--gb-green)' },
             { status: 400, label: 'Bad Request: campo "name" ausente ou body inválido.', color: 'var(--gb-amber)' },
@@ -90,8 +90,8 @@ export const baasApiDocs: ApiDocEntry[] = [
     {
         method: 'POST',
         path: '/api/v1/orders',
-        description: 'Cria um Pedido completo com itens do carrênho e gera automaticamente uma cobrança PIX. Os preços são sempre validados no servidor (nunca confie em preços vindos do frontend). Quando o pagamento for confirmado, o evento ORDER_PAID será emitido via WebSocket.',
-        request: `{\n  "provider": "openpix",\n  "items": [\n    { "product_id": "prod_abc", "quantity": 2 }\n  ]\n}\n\n// Escute o resultado via SDK:\ngb.channel(\'loja\')\n  .on(\'ORDER_PAID\', (pedido) => {\n    console.log(\'Pedido pago!\', pedido)\n    // pedido.order_id, pedido.total_amount, pedido.items...\n  })\n  .subscribe()`,
+        description: 'Cria um Checkout transacional (Pedido) convertendo itens num PIX consolidado buscando preços reais no banco de dados. Quando o pagamento for confirmado, emitirá ORDER_PAID.',
+        request: `// Equivalente SDK:\nconst pedido = await gb.orders.checkout({\n  provider: 'openpix',\n  items: [{ product_id: 'prod_abc', quantity: 2 }]\n})\n\n// Escute o resultado via SDK:\ngb.channel(\'loja\')\n  .on(\'ORDER_PAID\', (pedido) => console.log(\'Pedido pago!\', pedido))\n  .subscribe()`,
         responses: [
             { status: 201, label: 'Pedido criado. Retorna order_id, transaction_id, brCode (QR Pix) e itens com preços congelados.', color: 'var(--gb-green)' },
             { status: 400, label: 'Bad Request: items inválidos ou provider ausente.', color: 'var(--gb-amber)' },
@@ -103,8 +103,8 @@ export const baasApiDocs: ApiDocEntry[] = [
     {
         method: 'POST',
         path: '/api/v1/transactions',
-        description: 'Cria uma Transação Avulsa (Standalone PIX), como doações, gorjetas ou cobranças diretas sem uso do carrênho e de produtos. Quando o pagamento for confirmado, o webhook salvará os dados do pagador no banco de dados e emitirá o evento TRANSACTION_COMPLETED via WebSocket, acompanhado do `payer_name` e `payer_document`.',
-        request: `{\n  "provider": "openpix",\n  "amount": 5000\n}\n\n// Escute o resultado via SDK:\ngb.channel(\'loja\')\n  .on(\'TRANSACTION_COMPLETED\', (txn) => {\n    console.log(\'Pagamento avulso recebido de:\', txn.payer_name)\n  })\n  .subscribe()`,
+        description: 'Cria uma cobrança financeira desconectada de produtos (Gorjetas, Doações, Pagamentos dinâmicos avulsos). Quando a confirmação chegar, emitirá TRANSACTION_COMPLETED com os dados do pagador.',
+        request: `// Equivalente SDK (Amount em centavos):\nconst txn = await gb.transactions.create({\n  amount: 5000,\n  provider: 'openpix'\n})\n\n// Escute o resultado via SDK:\ngb.channel(\'loja\')\n  .on(\'TRANSACTION_COMPLETED\', (txn) => console.log('Doação recebida!', txn))\n  .subscribe()`,
         responses: [
             { status: 201, label: 'Transação criada. Retorna transaction_id, provider_transaction_id e brCode (QR Pix).', color: 'var(--gb-green)' },
             { status: 400, label: 'Bad Request: valor menor ou igual a 0 ou provider ausente.', color: 'var(--gb-amber)' },
@@ -114,11 +114,30 @@ export const baasApiDocs: ApiDocEntry[] = [
     },
     {
         method: 'POST',
+        path: '/api/v1/storage/upload',
+        description: 'Faz o upload de um arquivo isolado no bucket Cloudflare R2 do seu Tenant. O payload deve ser `multipart/form-data`. A resposta conterá a `public_url` que deve ser salva no seu banco de dados (ex: como image_url de um produto).',
+        request: `// Equivalente SDK Oficial:\nconst arquivo = document.getElementById('meu-input').files[0]\nconst arquivoDoStorage = await gb.storage.upload(arquivo)\nconsole.log(arquivoDoStorage.public_url)\n\n// Equivalente HTTP Fetch Nativo:\nconst formData = new FormData()\nformData.append('file', arquivo)\nfetch('/api/v1/storage/upload', {\n  method: 'POST',\n  headers: { 'Authorization': 'Bearer <SUA_SERVICE_KEY_OU_JWT>' },\n  body: formData\n})`,
+        responses: [
+            { status: 201, label: 'Upload concluído: retorna a URL pública (public_url) e metadados.', color: 'var(--gb-green)' },
+            { status: 400, label: 'Bad Request: arquivo ausente ou muito grande.', color: 'var(--gb-amber)' }
+        ]
+    },
+    {
+        method: 'GET',
+        path: '/api/v1/storage/public/:id',
+        description: 'Endpoint público (CDN) que resolve o proxy e devolve a mídia física armazenada no R2 através da Cloudflare Edge Network. Esta URL é gerada e devolvida automaticamente (`public_url`) pelo endpoint de Upload.',
+        responses: [
+            { status: 200, label: 'OK: retorna os bytes binários da mídia ou cache hit (304).', color: 'var(--gb-green)' },
+            { status: 404, label: 'Not Found: mídia inexistente.', color: 'var(--gb-amber)' }
+        ]
+    },
+    {
+        method: 'POST',
         path: '/api/v1/payments/webhooks/:provider',
         description: 'Endpoint público chamado pela Gateway após confirmar um pagamento. O GeniusBase processa o evento e atualiza a transação para COMPLETED (salvando nome e doc do pagador). Se for um pedido de loja, emite ORDER_PAID. De qualquer forma, sempre emite TRANSACTION_COMPLETED via WebSocket. Tudo automático.',
         request: `// ⚠️ Configure na Woovi/OpenPix como URL de Webhook:\nhttps://SEU_WORKER.workers.dev/api/v1/payments/webhooks/openpix\n\n// O payload enviado pela Woovi (automático):\n{\n  "event": "OPENPIX:CHARGE_COMPLETED",\n  "charge": {\n    "correlationID": "ord_abc123",\n    "status": "COMPLETED"\n  }\n}`,
         responses: [
-            { status: 200, label: 'OK: evento processado. Pedido atualizado para PAID. ORDER_PAID broadcast enviado.', color: 'var(--gb-green)' }
+            { status: 200, label: 'OK: evento processado. Pedido/Transação atualizado para PAID.', color: 'var(--gb-green)' }
         ]
     }
 ]
